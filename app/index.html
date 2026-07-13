@@ -10,7 +10,7 @@
 <title>Lumi — Learn the words all around you</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600&family=Noto+Serif+JP:wght@500;600&family=Noto+Serif+KR:wght@500;600&family=Noto+Serif:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600&family=Noto+Serif+JP:wght@500;600&family=Noto+Serif+KR:wght@500;600&family=Noto+Serif:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
 <!-- Supabase: accounts + cloud sync. The publishable key is meant to be public;
      data is protected by database Row-Level-Security rules. -->
 <script>window.lumiSupaReady = new Promise(function(r){ window.__supaResolve = r; });</script>
@@ -1489,10 +1489,10 @@ function authView(){
   return `<div style="position:absolute;inset:0;background:var(--bg);overflow-y:auto;display:flex;flex-direction:column">
     <div style="position:absolute;left:-20%;right:-20%;top:56%;height:200px;background:var(--mtn);filter:blur(34px);border-radius:50%;transform:scaleX(1.4)"></div>
     <div style="position:relative;padding:calc(env(safe-area-inset-top) + 30px) 26px 0;text-align:center">
-      <a href="/" aria-label="Go to the Lumi home page" style="display:inline-flex;align-items:center;gap:7px;font-family:'Fraunces',serif;font-size:24px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none"><img src="/assets/lumi-mark.png" alt="" style="width:26px;height:26px;object-fit:contain">Lumi</a>
+      <a href="/" aria-label="Go to the Lumi home page" style="display:inline-flex;align-items:center;gap:7px;font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:24px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none"><img src="/assets/lumi-mark.png" alt="" style="width:26px;height:26px;object-fit:contain">Lumi</a>
     </div>
     <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 22px 30px;max-width:480px;width:100%;margin:0 auto">
-      <h1 style="font-family:'Fraunces','Noto Serif',serif;font-weight:500;font-size:34px;line-height:1.05;letter-spacing:-1px;color:var(--ink);margin-bottom:8px;text-wrap:balance">${esc(title)}</h1>
+      <h1 style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-weight:500;font-size:34px;line-height:1.05;letter-spacing:-1px;color:var(--ink);margin-bottom:8px;text-wrap:balance">${esc(title)}</h1>
       <p style="font-size:14.5px;line-height:1.5;color:var(--ink-soft);margin-bottom:22px;max-width:320px">${esc(sub)}</p>
       <div style="padding:14px;border-radius:24px;background:var(--glass-strong);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-brd);box-shadow:0 20px 50px -20px rgba(30,40,40,.4)">
         ${err}${notice}
@@ -1513,23 +1513,23 @@ function onboardingView(){
   const card = `<div style="position:relative;width:calc(100% - 32px);max-width:460px;padding:10px;border-radius:28px;background:var(--glass-strong);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-brd);box-shadow:0 20px 50px -20px rgba(30,40,40,.4);${wide?'margin:30px auto 0':'margin:0 auto 26px'}">
       <button data-action="editSpoken" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-radius:19px;text-align:left">
         <span style="font-size:13px;font-weight:600;color:var(--ink-soft)">${esc(t('sheet.iSpeak'))}</span>
-        <span style="font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.spoken).native)} <span style="font-size:11px;opacity:.5">▾</span></span>
+        <span style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.spoken).native)} <span style="font-size:11px;opacity:.5">▾</span></span>
       </button>
       <div style="height:1px;background:var(--glass-brd);margin:0 8px"></div>
       <button data-action="editLearning" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-radius:19px;text-align:left">
         <span style="font-size:13px;font-weight:600;color:var(--ink-soft)">${esc(t('sheet.imLearning'))}</span>
-        <span style="font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.learning).native)} <span style="font-size:11px;opacity:.5">▾</span></span>
+        <span style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.learning).native)} <span style="font-size:11px;opacity:.5">▾</span></span>
       </button>
       <button data-action="continue" style="width:100%;height:56px;margin-top:8px;border-radius:20px;background:var(--cta);color:var(--cta-ink);font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">${esc(t('ob.begin'))} <span style="font-size:17px">→</span></button>
     </div>`;
   return `<div style="position:absolute;inset:0;background:var(--bg);overflow:hidden;display:flex;flex-direction:column">
     <div style="position:absolute;left:-20%;right:-20%;top:54%;height:200px;background:var(--mtn);filter:blur(34px);border-radius:50%;transform:scaleX(1.4)"></div>
     <div style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 18px) 24px 0">
-      <a href="/" aria-label="Go to the Lumi home page" style="font-family:'Fraunces',serif;font-size:21px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none">Lumi</a>
+      <a href="/" aria-label="Go to the Lumi home page" style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:21px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none">Lumi</a>
       <div style="display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:30px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-brd);font-size:12px;font-weight:600;color:var(--ink)"><span style="width:6px;height:6px;border-radius:50%;background:var(--ink);opacity:.5"></span>${esc(t('common.tagline'))}</div>
     </div>
     <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 26px;${wide?'align-items:center;text-align:center':''}">
-      <h1 style="font-family:'Fraunces','Noto Serif',serif;font-weight:500;font-size:48px;line-height:1.0;letter-spacing:-1.6px;color:var(--ink);margin-bottom:18px;text-wrap:balance">${uiLang()==='en' ? 'Learn the words<br>all <span style="font-style:italic;font-weight:500">around</span> you.' : esc(t('ob.heading'))}</h1>
+      <h1 style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-weight:500;font-size:48px;line-height:1.0;letter-spacing:-1.6px;color:var(--ink);margin-bottom:18px;text-wrap:balance">${uiLang()==='en' ? 'Learn the words<br>all <span style="font-style:italic;font-weight:500">around</span> you.' : esc(t('ob.heading'))}</h1>
       <p style="font-size:15.5px;line-height:1.55;color:var(--ink-soft);max-width:320px;${wide?'margin-left:auto;margin-right:auto':''}">${esc(t('ob.sub'))}</p>
       ${wide ? card : ''}
     </div>
@@ -1550,7 +1550,7 @@ function upgradeView(){
       ${badgeTxt?`<span style="position:absolute;top:-11px;left:20px;background:var(--ink);color:var(--bg-solid);font-size:10.5px;font-weight:700;letter-spacing:.4px;padding:4px 11px;border-radius:14px">${badgeTxt}</span>`:''}
       <div>
         <div style="font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-soft)">${name}</div>
-        <div style="font-family:'Fraunces',serif;font-size:27px;font-weight:500;letter-spacing:-.8px;color:var(--ink);line-height:1.05;margin-top:2px">${price}<span style="font-family:inherit;font-size:14px;font-weight:600;color:var(--ink-soft)"> ${per}</span></div>
+        <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:27px;font-weight:500;letter-spacing:-.8px;color:var(--ink);line-height:1.05;margin-top:2px">${price}<span style="font-family:inherit;font-size:14px;font-weight:600;color:var(--ink-soft)"> ${per}</span></div>
         <div style="font-size:12px;color:var(--ink-soft);margin-top:3px">${note}</div>
       </div>
       <span style="flex-shrink:0;color:var(--ink);opacity:.7"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
@@ -1561,14 +1561,14 @@ function upgradeView(){
       <button data-action="upgradeClose" aria-label="Back" style="width:44px;height:44px;border-radius:50%;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-brd);display:flex;align-items:center;justify-content:center;color:var(--ink)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
-      <a href="/" style="font-family:'Fraunces',serif;font-size:22px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none">Lumi</a>
+      <a href="/" style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:22px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none">Lumi</a>
       <span style="width:44px"></span>
     </div>
     <div style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 26px 40px;text-align:center">
       <div style="width:58px;height:58px;border-radius:18px;background:var(--glass-strong);border:1px solid var(--glass-brd);display:flex;align-items:center;justify-content:center;margin-bottom:18px;box-shadow:0 14px 30px -16px rgba(20,30,25,.5)">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="var(--ink)" stroke="none"><path d="M12 2.5l2.1 5.4 5.9.3-4.6 3.7 1.6 5.7L12 14.9 6.9 17.6l1.6-5.7L3.9 8.2l5.9-.3z"/></svg>
       </div>
-      <h2 style="font-family:'Fraunces',serif;font-size:27px;font-weight:500;line-height:1.08;letter-spacing:-.8px;color:var(--ink);margin-bottom:8px;text-wrap:balance;max-width:320px">${title}</h2>
+      <h2 style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:27px;font-weight:500;line-height:1.08;letter-spacing:-.8px;color:var(--ink);margin-bottom:8px;text-wrap:balance;max-width:320px">${title}</h2>
       <p style="font-size:14px;color:var(--ink-soft);line-height:1.5;max-width:300px;margin-bottom:26px">${sub}</p>
       <div style="display:flex;flex-direction:column;align-items:center;gap:16px;width:100%">
         ${plan('buyAnnual',t('up.bestValue'),t('up.annual'),'$39.99',t('up.perYear'),t('up.annualNote'))}
@@ -1592,7 +1592,7 @@ function homeView(){
       <button data-action="settings" aria-label="Change languages" style="width:44px;height:44px;border-radius:50%;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-brd);display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14.5 14.5 0 0 1 0 18 14.5 14.5 0 0 1 0-18z"/></svg>
       </button>
-      <a href="/" aria-label="Go to the Lumi home page" style="display:inline-flex;align-items:center;gap:7px;font-family:'Fraunces',serif;font-size:24px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none"><img src="/assets/lumi-mark.png" alt="" style="width:26px;height:26px;object-fit:contain">Lumi</a>
+      <a href="/" aria-label="Go to the Lumi home page" style="display:inline-flex;align-items:center;gap:7px;font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:24px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none"><img src="/assets/lumi-mark.png" alt="" style="width:26px;height:26px;object-fit:contain">Lumi</a>
       <button data-action="journal" aria-label="Open your collection" style="position:relative;width:44px;height:44px;border-radius:50%;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-brd);display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>
         ${badge>0?`<span style="position:absolute;top:-3px;right:-3px;background:var(--ink);color:var(--bg-solid);min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;padding:0 4px;border:2px solid var(--bg-solid)">${badge>99?'99+':badge}</span>`:''}
@@ -1611,7 +1611,7 @@ function homeView(){
       </div>
     </div>` : ''}
     <div style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 30px;text-align:center">
-      <h2 style="font-family:'Fraunces','Noto Serif',serif;font-size:34px;font-weight:500;line-height:1.05;letter-spacing:-1px;color:var(--ink);margin-bottom:8px;text-wrap:balance">${uiLang()==='en' ? 'What\'s <span style="font-style:italic">in front</span><br>of you?' : esc(t('home.heading'))}</h2>
+      <h2 style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:34px;font-weight:500;line-height:1.05;letter-spacing:-1px;color:var(--ink);margin-bottom:8px;text-wrap:balance">${uiLang()==='en' ? 'What\'s <span style="font-style:italic">in front</span><br>of you?' : esc(t('home.heading'))}</h2>
       <p style="font-size:14px;color:var(--ink-soft);margin-bottom:44px">${esc(t('home.sub'))}</p>
       <button data-action="capture" style="width:122px;height:122px;border-radius:50%;background:var(--glass-strong);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--glass-brd);box-shadow:0 20px 44px -16px rgba(30,40,40,.45);display:flex;align-items:center;justify-content:center;animation:lumiDrift 5s ease-in-out infinite">
         <div style="width:88px;height:88px;border-radius:50%;border:1.5px solid var(--ink);opacity:.85;display:flex;align-items:center;justify-content:center">
@@ -1686,13 +1686,13 @@ function resultView(){
     card = `<div style="width:100%;max-width:480px;margin:0 auto;border-radius:30px;background:rgba(255,255,255,.6);backdrop-filter:blur(26px) saturate(1.3);-webkit-backdrop-filter:blur(26px) saturate(1.3);border:1px solid var(--glass-brd);box-shadow:0 24px 50px -18px rgba(25,30,30,.45);padding:24px 24px 22px">
       <div style="font-size:12px;font-weight:600;letter-spacing:.4px;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px">${esc(t('result.newWord'))}</div>
       <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
-        <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-weight:500;font-size:42px;line-height:.95;letter-spacing:-1.2px;color:var(--ink)">${esc(cur.word)}</div>
+        <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-weight:500;font-size:42px;line-height:.95;letter-spacing:-1.2px;color:var(--ink)">${esc(cur.word)}</div>
         <button data-action="speak" aria-label="Hear pronunciation" style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--glass-brd);background:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:14px;flex-shrink:0">♪</button>
       </div>
       ${readingOf(cur.word, cur.learning, cur.reading) ? `<div style="font-size:15px;color:var(--ink-soft);margin-top:4px;letter-spacing:.3px">${esc(readingOf(cur.word, cur.learning, cur.reading))}</div>` : ''}
       <div style="font-size:16px;color:var(--ink-soft);font-weight:500;margin-top:6px">${esc(cur.meaning)}</div>
       <div style="height:1px;background:var(--glass-brd);margin:15px 0 13px"></div>
-      <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-style:italic;font-size:16.5px;line-height:1.4;color:var(--ink)">${esc(cur.example)}</div>
+      <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-style:italic;font-size:16.5px;line-height:1.4;color:var(--ink)">${esc(cur.example)}</div>
       ${cur.exampleTr ? `<div style="font-size:14px;color:var(--ink-soft);line-height:1.42;margin-top:6px">${esc(cur.exampleTr)}</div>` : ''}
       <div style="display:flex;gap:10px;margin-top:20px">
         <button data-action="save" style="${saveStyle}">${state.saved?esc(t('result.saved')):esc(t('result.save'))}</button>
@@ -1709,7 +1709,7 @@ function resultView(){
       ? t('result.noConnMsg')
       : (cur.error === 'server' ? t('result.serverMsg') : t('result.notFoundMsg'));
     card = `<div style="width:100%;max-width:480px;margin:0 auto;border-radius:30px;background:rgba(255,255,255,.62);backdrop-filter:blur(26px) saturate(1.3);-webkit-backdrop-filter:blur(26px) saturate(1.3);border:1px solid var(--glass-brd);box-shadow:0 24px 50px -18px rgba(25,30,30,.45);padding:24px 24px 22px">
-      <div style="font-family:'Fraunces',serif;font-weight:500;font-size:26px;letter-spacing:-.6px;color:var(--ink);margin-bottom:6px">${esc(title)}</div>
+      <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-weight:500;font-size:26px;letter-spacing:-.6px;color:var(--ink);margin-bottom:6px">${esc(title)}</div>
       <div style="font-size:14.5px;line-height:1.5;color:var(--ink-soft)">${esc(msg)}</div>
       <div style="display:flex;gap:10px;margin-top:20px">
         <button data-action="retake" style="flex:1;height:54px;border-radius:27px;background:var(--cta);color:var(--cta-ink);font-size:15.5px;font-weight:600">${esc(t('result.tryAgain'))}</button>
@@ -1771,7 +1771,7 @@ function journalView(){
   if(cards.length === 0){
     body = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:54px 40px;gap:16px;min-height:430px">
         <div style="width:96px;height:96px;border-radius:48% 52% 55% 45% / 52% 46% 54% 48%;background:var(--glass-strong);border:1px solid var(--glass-brd);box-shadow:0 16px 36px -16px rgba(30,40,40,.4)"></div>
-        <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:500;font-style:italic;color:var(--ink)">${esc(t('journal.emptyTitle'))}</div>
+        <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:22px;font-weight:500;font-style:italic;color:var(--ink)">${esc(t('journal.emptyTitle'))}</div>
         <div style="font-size:14px;color:var(--ink-soft);max-width:230px;line-height:1.5">${esc(t('journal.emptySub'))}</div>
         <button data-action="journalCapture" style="margin-top:6px;height:50px;padding:0 26px;border-radius:25px;background:var(--cta);color:var(--cta-ink);font-weight:600;font-size:15px">${esc(t('journal.capture'))}</button>
       </div>`;
@@ -1792,7 +1792,7 @@ function journalView(){
       <div style="display:flex;align-items:flex-start;justify-content:space-between">
         <div>
           <button data-action="openSwitchLearning" style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:5px">${esc(learnPill)} <span style="font-size:9px">▾</span></button>
-          <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:32px;letter-spacing:-.8px;color:var(--ink);line-height:.95">${uiLang()==='en' ? 'Your <span style="font-style:italic">collection</span>' : esc(t('journal.title'))}</h1>
+          <h1 style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-weight:500;font-size:32px;letter-spacing:-.8px;color:var(--ink);line-height:.95">${uiLang()==='en' ? 'Your <span style="font-style:italic">collection</span>' : esc(t('journal.title'))}</h1>
           <div style="font-size:13px;color:var(--ink-soft);margin-top:4px">${esc(count)}</div>
         </div>
         <button data-action="journalCapture" aria-label="Capture something" style="width:46px;height:46px;border-radius:50%;background:var(--cta);color:var(--cta-ink);display:flex;align-items:center;justify-content:center;box-shadow:0 12px 26px -12px rgba(25,30,30,.5)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -1817,14 +1817,14 @@ function cardsBody(cards){
           <div style="${front}">
             <button data-action="speakText" data-word="${esc(word)}" data-lang="${card.learning}" aria-label="Hear pronunciation" style="position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:1px solid var(--glass-brd);background:rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:12px;z-index:2">♪</button>
             ${cardThumb(card, 130)}
-            <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-weight:500;font-size:23px;letter-spacing:-.4px;color:var(--ink);text-align:center;line-height:1.08">${esc(word)}</div>
+            <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-weight:500;font-size:23px;letter-spacing:-.4px;color:var(--ink);text-align:center;line-height:1.08">${esc(word)}</div>
             ${readingOf(word, card.learning, card.reading) ? `<div style="font-size:12.5px;color:var(--ink-soft);text-align:center;letter-spacing:.2px;margin-top:-7px">${esc(readingOf(word, card.learning, card.reading))}</div>` : ''}
           </div>
           <div style="${back}">
             <div style="font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-soft)">${esc(t('card.means'))}</div>
-            <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:500;color:var(--ink);line-height:1.05;margin-top:3px">${esc(meaning)}</div>
+            <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:22px;font-weight:500;color:var(--ink);line-height:1.05;margin-top:3px">${esc(meaning)}</div>
             <div style="height:1px;background:var(--glass-brd);margin:11px 0"></div>
-            <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-style:italic;font-size:14px;line-height:1.4;color:var(--ink)">${esc(example)}</div>
+            <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-style:italic;font-size:14px;line-height:1.4;color:var(--ink)">${esc(example)}</div>
             ${exampleTr ? `<div style="font-size:12px;color:var(--ink-soft);line-height:1.38;margin-top:5px">${esc(exampleTr)}</div>` : ''}
           </div>
         </div>
@@ -1881,7 +1881,7 @@ function categoriesBody(cards){
     return `<div style="margin-top:8px">
         <div style="display:flex;align-items:center;gap:9px;padding:8px max(16px,4vw) 2px">
           <span style="font-size:19px">${cat.emoji}</span>
-          <span style="font-family:'Fraunces',serif;font-weight:500;font-size:19px;color:var(--ink)">${esc(catLabel(cat))}</span>
+          <span style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-weight:500;font-size:19px;color:var(--ink)">${esc(catLabel(cat))}</span>
           <span style="font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--glass);border:1px solid var(--glass-brd);border-radius:11px;padding:1px 9px">${list.length}</span>
         </div>
         ${cardsBody(list)}
@@ -1942,7 +1942,7 @@ function reviewBody(cards){
     markReviewedToday();
     return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:50px 40px;gap:16px;min-height:56vh">
         <div style="font-size:46px">🎉</div>
-        <div style="font-family:'Fraunces',serif;font-size:26px;font-weight:500;color:var(--ink)">${esc(t('review.doneTitle'))}</div>
+        <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:26px;font-weight:500;color:var(--ink)">${esc(t('review.doneTitle'))}</div>
         <div style="font-size:14.5px;color:var(--ink-soft);max-width:250px;line-height:1.5">${esc(t('review.doneSub', { w: nWords(rv.total), lang: learnNat }))}</div>
         <button data-action="reviewAgain" style="margin-top:6px;height:50px;padding:0 28px;border-radius:25px;background:var(--cta);color:var(--cta-ink);font-weight:600;font-size:15px">${esc(t('review.again'))}</button>
       </div>`;
@@ -1967,13 +1967,13 @@ function reviewBody(cards){
           </div>
           <div class="rv-face rv-back" style="${faceBase};gap:8px;text-align:center;transform:rotateY(180deg);opacity:${fl?1:0}">
             <div style="display:flex;align-items:center;justify-content:center;gap:11px">
-              <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-weight:500;font-size:34px;letter-spacing:-1px;color:var(--ink);line-height:1.0">${esc(word)}</div>
+              <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-weight:500;font-size:34px;letter-spacing:-1px;color:var(--ink);line-height:1.0">${esc(word)}</div>
               <button data-action="speakText" data-word="${esc(word)}" data-lang="${state.learning}" aria-label="Hear pronunciation" style="width:38px;height:38px;flex-shrink:0;border-radius:50%;border:1.5px solid var(--glass-brd);background:rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:14px">♪</button>
             </div>
             ${readingOf(word, state.learning, reading) ? `<div style="font-size:14px;color:var(--ink-soft);letter-spacing:.3px;margin-top:-2px">${esc(readingOf(word, state.learning, reading))}</div>` : ''}
             <div style="font-size:15px;color:var(--ink-soft);font-weight:500">${esc(meaning)}</div>
             <div style="height:1px;width:60px;background:var(--glass-brd);margin:8px 0"></div>
-            <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-style:italic;font-size:15px;line-height:1.4;color:var(--ink)">${esc(example)}</div>
+            <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-style:italic;font-size:15px;line-height:1.4;color:var(--ink)">${esc(example)}</div>
             ${exampleTr ? `<div style="font-size:12.5px;color:var(--ink-soft);line-height:1.35;margin-top:5px">${esc(exampleTr)}</div>` : ''}
           </div>
         </div>
@@ -2044,7 +2044,7 @@ async function renderShareCanvas(c){
   roundRectPath(ctx, px + 16, py + 16, pw - 32, ph - 32, pr - 14);
   ctx.strokeStyle = 'rgba(120,150,108,0.45)'; ctx.lineWidth = 2.5; ctx.stroke();
 
-  const cx = W/2, maxTextW = pw - 160, serif = "'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif";
+  const cx = W/2, maxTextW = pw - 160, serif = "'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif";
 
   // --- Measure the text (at full size) so we can give the image a clear gap and only
   //     shrink the fonts when space is genuinely tight. ---
@@ -2230,11 +2230,11 @@ function sheetView(){
         border: isSel?'1.5px solid var(--ink)':'1px solid var(--glass-brd)', color:'var(--ink)', opacity:isDis?'0.4':'1' });
       const check = isSel ? `<span style="width:22px;height:22px;border-radius:50%;background:var(--cta);color:var(--cta-ink);display:flex;align-items:center;justify-content:center;font-size:12px">✓</span>` : '';
       return `<button ${isDis?'':'data-action="pickLang" data-code="'+l.code+'"'} style="${rowStyle}">
-        <span style="font-family:'Fraunces',serif;font-weight:500;font-size:19px">${esc(l.native)}</span>
+        <span style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-weight:500;font-size:19px">${esc(l.native)}</span>
         ${check}
       </button>`;
     }).join('');
-    inner = `<div style="font-family:'Fraunces',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:3px;padding:0 2px">${esc(title)}</div>
+    inner = `<div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:3px;padding:0 2px">${esc(title)}</div>
       <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;padding:0 2px">${esc(sub)}</div>
       <div style="display:flex;flex-direction:column;gap:8px">${rows}</div>`;
   } else if(state.sheet === 'editcard'){
@@ -2246,39 +2246,39 @@ function sheetView(){
     const wrap = 'display:flex;flex-direction:column;gap:5px;margin-bottom:13px';
     const lab = 'font-size:12px;font-weight:600;color:var(--ink-soft);padding-left:2px';
     const inp = 'width:100%;padding:13px 15px;border-radius:14px;background:var(--glass);border:1px solid var(--glass-brd);font-family:inherit;font-size:16px;color:var(--ink);outline:none';
-    inner = `<div style="font-family:'Fraunces',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:3px;padding:0 2px">${esc(t('sheet.editTitle'))}</div>
+    inner = `<div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:3px;padding:0 2px">${esc(t('sheet.editTitle'))}</div>
       <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;padding:0 2px">${esc(t('sheet.editSub'))}</div>
-      <div style="${wrap}"><span style="${lab}">${esc(t('sheet.word'))} · ${esc(learnNat)}</span><input id="ec-word" value="${q(d.word)}" oninput="lumiEdit('word', this.value)" style="${inp};font-family:'Fraunces',serif;font-size:19px"></div>
+      <div style="${wrap}"><span style="${lab}">${esc(t('sheet.word'))} · ${esc(learnNat)}</span><input id="ec-word" value="${q(d.word)}" oninput="lumiEdit('word', this.value)" style="${inp};font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:19px"></div>
       <div style="${wrap}"><span style="${lab}">${esc(t('sheet.meaning'))} · ${esc(spokenNat)}</span><input id="ec-meaning" value="${q(d.meaning)}" oninput="lumiEdit('meaning', this.value)" style="${inp}"></div>
-      <div style="${wrap}"><span style="${lab}">${esc(t('sheet.example'))}</span><textarea id="ec-example" rows="2" oninput="lumiEdit('example', this.value)" style="${inp};resize:none;font-family:'Fraunces',serif;font-style:italic;line-height:1.4">${esc(d.example)}</textarea></div>
+      <div style="${wrap}"><span style="${lab}">${esc(t('sheet.example'))}</span><textarea id="ec-example" rows="2" oninput="lumiEdit('example', this.value)" style="${inp};resize:none;font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-style:italic;line-height:1.4">${esc(d.example)}</textarea></div>
       <button data-action="saveCardEdit" style="width:100%;height:52px;border-radius:18px;background:var(--cta);color:var(--cta-ink);font-size:16px;font-weight:600;margin-top:4px">${esc(t('sheet.saveChanges'))}</button>`;
   } else if(state.sheet === 'cardactions'){
     const card = findCard(state.sheetTarget);
     const w = card ? cardWME(card).word : '';
     if(state.cardDeleteConfirm){
-      inner = `<div style="font-family:'Fraunces',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:4px;padding:0 2px">${esc(t('sheet.deleteTitle'))}</div>
+      inner = `<div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:4px;padding:0 2px">${esc(t('sheet.deleteTitle'))}</div>
         <div style="font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;padding:0 2px;line-height:1.5">${esc(t('sheet.deleteMsg', { word: w }))}</div>
         <button data-action="confirmDelete" style="width:100%;height:52px;border-radius:18px;background:#c0392b;color:#fff;font-size:16px;font-weight:600;margin-bottom:10px">${esc(t('sheet.delete'))}</button>
         <button data-action="cancelDelete" style="width:100%;height:50px;border-radius:18px;background:transparent;border:1.5px solid var(--glass-brd);color:var(--ink);font-size:15px;font-weight:600">${esc(t('sheet.cancel'))}</button>`;
     } else {
       inner = `<div style="display:flex;align-items:center;gap:13px;margin-bottom:18px;padding:0 2px">
           <div style="width:54px;height:54px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${card?cardThumb(card,52):''}</div>
-          <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-weight:500;font-size:22px;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(w)}</div>
+          <div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-weight:500;font-size:22px;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(w)}</div>
         </div>
         <button data-action="shareFromActions" style="width:100%;height:52px;border-radius:18px;background:var(--glass);border:1px solid var(--glass-brd);color:var(--ink);font-size:15.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">⤴&nbsp; ${esc(t('sheet.shareCard'))}</button>
         <button data-action="editFromActions" style="width:100%;height:52px;border-radius:18px;background:var(--glass);border:1px solid var(--glass-brd);color:var(--ink);font-size:15.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">✏️&nbsp; ${esc(t('sheet.editWord'))}</button>
         <button data-action="askDelete" style="width:100%;height:52px;border-radius:18px;background:transparent;border:1.5px solid #c0392b;color:#c0392b;font-size:15.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">🗑&nbsp; ${esc(t('sheet.delete'))}</button>`;
     }
   } else { // settings
-    inner = `<div style="font-family:'Fraunces',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:3px;padding:0 2px">${esc(t('sheet.langTitle'))}</div>
+    inner = `<div style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:3px;padding:0 2px">${esc(t('sheet.langTitle'))}</div>
       <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;padding:0 2px">${esc(t('sheet.langSub'))}</div>
       <button data-action="editSpoken" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:16px;border-radius:18px;background:var(--glass);border:1px solid var(--glass-brd);margin-bottom:10px">
         <span style="font-size:13px;font-weight:600;color:var(--ink-soft)">${esc(t('sheet.iSpeak'))}</span>
-        <span style="font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.spoken).native)} ›</span>
+        <span style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.spoken).native)} ›</span>
       </button>
       <button data-action="editLearning" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:16px;border-radius:18px;background:var(--glass);border:1px solid var(--glass-brd);margin-bottom:18px">
         <span style="font-size:13px;font-weight:600;color:var(--ink-soft)">${esc(t('sheet.imLearning'))}</span>
-        <span style="font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.learning).native)} ›</span>
+        <span style="font-family:'Fraunces','Noto Serif','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.learning).native)} ›</span>
       </button>
       <div style="font-size:12px;line-height:1.6;color:var(--ink-soft)">${esc(t('sheet.syncNote'))}</div>
       ${isPremium() ? `<div style="height:1px;background:var(--glass-brd);margin:18px 0"></div>
