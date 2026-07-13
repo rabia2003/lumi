@@ -47,7 +47,14 @@ module.exports = async (req, res) => {
     const arr = await r.json();
     const signed = {};
     (Array.isArray(arr) ? arr : []).forEach(o => {
-      if(o && o.signedURL && o.path){ signed[o.path] = SUPABASE_URL + (o.signedURL[0] === '/' ? o.signedURL : '/' + o.signedURL); }
+      if(o && o.signedURL && o.path){
+        // Supabase returns signedURL as "/object/sign/…" WITHOUT the "/storage/v1" prefix.
+        // Missing it made the URL 404 on any device that didn't already have a local copy
+        // of the image (i.e. every device except the one that created the card).
+        let s = o.signedURL; if(s[0] !== '/') s = '/' + s;
+        if(s.indexOf('/storage/v1/') !== 0) s = '/storage/v1' + s;
+        signed[o.path] = SUPABASE_URL + s;
+      }
     });
     res.status(200).json({ signed });
   } catch(e){
