@@ -147,6 +147,9 @@ const CAPTURE_KEY = 'lumi.captures';   // lifetime count of saved words (the fre
 const PREMIUM_KEY = 'lumi.premium';    // '1' once this person is on Lumi Pro
 const FREE_LIMIT  = 5;                 // words a signed-in free user can collect before Pro is needed
 const ANON_LIMIT  = 1;                 // free captures allowed with NO account before sign-up is required
+// Inside the native iOS/Android shell (Capacitor) the bundled HTML has no local /api,
+// so API calls must reach the live server. On the plain web this stays '' (no change).
+const API_BASE = (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ? 'https://lumiwords.com' : '';
 // Polar hosted-checkout links (PRODUCTION). The in-app buttons append the signed-in
 // user's id + email so the webhook can unlock the right account after payment.
 const POLAR_MONTHLY_URL = 'https://buy.polar.sh/polar_cl_YFzisyctIXO4OOpOGohrEXatdd7IkMTaGoYxV4LVLat';
@@ -881,7 +884,7 @@ async function startCapture(photo){
 
   const callName = async () => {
     try {
-      const r = await fetch('/api/name', {
+      const r = await fetch(API_BASE + '/api/name', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: photo, spoken: state.spoken, learning: state.learning, provider: AITEST.provider, direct: AITEST.direct })
       });
@@ -932,7 +935,7 @@ function triggerReveal(){
 // PNG data URL (shrunk for storage), or null if it fails.
 async function fetchCutout(photo){
   try {
-    const r = await fetch('/api/cutout', {
+    const r = await fetch(API_BASE + '/api/cutout', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: photo })
     });
@@ -980,7 +983,7 @@ function speak(text, lang){
 }
 async function fetchTTS(text, lang){
   try {
-    const r = await fetch('/api/speak', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, lang }) });
+    const r = await fetch(API_BASE + '/api/speak', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, lang }) });
     if(!r.ok) return null;
     return URL.createObjectURL(await r.blob());
   } catch(e){ return null; }
@@ -1021,7 +1024,7 @@ async function uploadCardImage(dataUrl){
     const { data } = await supa.auth.getSession();
     const token = data && data.session && data.session.access_token;
     if(!token) return null;
-    const r = await fetch('/api/store-image', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ image: dataUrl }) });
+    const r = await fetch(API_BASE + '/api/store-image', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ image: dataUrl }) });
     if(!r.ok) return null;
     const j = await r.json();
     return (j && j.path) || null;
@@ -1048,7 +1051,7 @@ async function resolveCardImages(){
     let changed = false;
     for(let i = 0; i < paths.length; i += 100){
       const chunk = paths.slice(i, i + 100);
-      const r = await fetch('/api/sign-images', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ paths: chunk }) });
+      const r = await fetch(API_BASE + '/api/sign-images', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ paths: chunk }) });
       if(!r.ok) continue;
       const signed = ((await r.json()) || {}).signed || {};
       chunk.forEach(p => { const url = signed[p]; if(url){ (need[p]||[]).forEach(c => c.image = url); changed = true; } });
@@ -1868,7 +1871,7 @@ async function classifyMissing(cards){
   _classifying = true;
   try {
     const items = missing.map(c => (((c.meaning||'') + (c.word ? ' / ' + c.word : '')).trim()) || c.word || '');
-    const r = await fetch('/api/categorize', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ items }) });
+    const r = await fetch(API_BASE + '/api/categorize', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ items }) });
     const cats = (await r.json()).categories || [];
     missing.forEach((c, i) => { c.category = cats[i] || 'Other'; });
   } catch(e){ missing.forEach(c => { c.category = c.category || 'Other'; }); }
