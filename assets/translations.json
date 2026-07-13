@@ -1,0 +1,53 @@
+{
+  "translations": [
+    {
+      "en": "amulet",
+      "es": "un amuleto",
+      "zh": "护身符",
+      "ru": "амулет",
+      "kk": "амулет"
+    },
+    {
+      "en": "plant",
+      "es": "una planta",
+      "zh": "植物",
+      "ru": "растение",
+      "kk": "өсімдік"
+    },
+    {
+      "en": "sushi",
+      "es": "un sushi",
+      "zh": "寿司",
+      "ru": "суши",
+      "kk": "суши"
+    },
+    {
+      "en": "bottle",
+      "es": "una botella",
+      "zh": "瓶子",
+      "ru": "бутылка",
+      "kk": "бөтелка"
+    },
+    {
+      "en": "mango",
+      "es": "un mango",
+      "zh": "芒果",
+      "ru": "манго",
+      "kk": "манго"
+    },
+    {
+      "en": "electric kettle",
+      "es": "un hervidor eléctrico",
+      "zh": "电水壶",
+      "ru": "электрический чайник",
+      "kk": "электр қазан"
+    },
+    {
+      "en": "orange",
+      "es": "una naranja",
+      "zh": "橙子",
+      "ru": "апельсин",
+      "kk": "апельсин"
+    }
+  ]
+}

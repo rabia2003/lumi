@@ -1,0 +1,2522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#cfd6cc">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon-64.png">
+<link rel="apple-touch-icon" href="/assets/lumi-mark.png">
+<title>Lumi — Learn the words all around you</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600&family=Noto+Serif+JP:wght@500;600&family=Noto+Serif+KR:wght@500;600&family=Noto+Serif:wght@500;600&display=swap" rel="stylesheet">
+<!-- Supabase: accounts + cloud sync. The publishable key is meant to be public;
+     data is protected by database Row-Level-Security rules. -->
+<script>window.lumiSupaReady = new Promise(function(r){ window.__supaResolve = r; });</script>
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  const supa = createClient(
+    'https://xvowkwlznphpifyudphx.supabase.co',
+    'sb_publishable_Qt3eagHiQlVSCwOGAorR7A_DrbC5W8b',
+    { auth: { persistSession: true, autoRefreshToken: true } }
+  );
+  window.lumiSupa = supa;
+  window.__supaResolve(supa);
+</script>
+<script type="module">
+  // Accurate pinyin with tone marks for Chinese words — client-side, free, offline.
+  import { pinyin } from 'https://esm.sh/pinyin-pro@3';
+  window.lumiPinyin = (t) => { try { return pinyin(String(t || ''), { toneType: 'symbol', nonZh: 'consecutive' }) || ''; } catch(e){ return ''; } };
+  try { window.render && window.render(); } catch(e){}   // re-render so already-shown zh words get pinyin
+</script>
+<script type="module">
+  // Korean romanization (Revised Romanization) — rule-based, lightweight, client-side.
+  import { romanize } from 'https://esm.sh/es-hangul';
+  window.lumiRomanizeKo = (t) => { try { return romanize(String(t || '')) || ''; } catch(e){ return ''; } };
+  try { window.render && window.render(); } catch(e){}
+</script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{background:var(--bg,#c9ccc6);font-family:'Hanken Grotesk',system-ui,sans-serif;display:flex;align-items:center;justify-content:center}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  /* Collection cards: no text selection / iOS callout, so long-press (delete/edit) and
+     right-click open cleanly instead of highlighting the screen blue. */
+  [data-action="flip"], [data-action="flip"] *{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+
+  /* The app fills the whole window (phone AND laptop). Focused screens centre
+     their own content; the collection spreads into more columns when wide. */
+  #app{
+    position:relative;
+    width:100%;
+    height:100dvh;
+    overflow:hidden;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Hanken Grotesk',system-ui,sans-serif;
+  }
+
+  @keyframes lumiBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  @keyframes lumiDrift{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  @keyframes lumiSpin{to{transform:rotate(360deg)}}
+  @keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  /* The cut-out reveal: it fades + scales in, and its outline glows once. */
+  @keyframes lumiReveal{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:scale(1)}}
+  @keyframes lumiGlow{
+    0%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}
+    35%{filter:drop-shadow(0 0 18px rgba(255,255,255,.95))}
+    100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}
+  }
+  @media (prefers-reduced-motion: reduce){*{animation:none !important}}
+
+  .scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
+  /* The floating result image scales DOWN to fit its area (never overflows the
+     card). align-self:stretch gives it a definite height so the img % resolves,
+     and !important beats the cut-out's inline max-height. */
+  .resFloat{align-self:stretch;display:flex;align-items:center;justify-content:center;min-height:0}
+  .resFloat img{max-height:100%!important;max-width:100%!important}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Hidden file input used by the camera / upload buttons -->
+<input id="fileInput" type="file" accept="image/*" style="display:none">
+
+<script>
+"use strict";
+
+/* =========================================================================
+   LUMI — a visual vocabulary app
+   Plain HTML/CSS/JavaScript. No build tools. One file.
+   The structure mirrors the design prototype (Lumi.dc.html).
+   ========================================================================= */
+
+/* ---- 1. Language list -------------------------------------------------- */
+const LANGS = [
+  {code:'en', name:'English',  native:'English'},
+  {code:'es', name:'Spanish',  native:'Español'},
+  {code:'zh', name:'Mandarin', native:'中文'},
+  {code:'ru', name:'Russian',  native:'Русский'},
+  {code:'kk', name:'Kazakh',   native:'Қазақша'},
+  {code:'it', name:'Italian',    native:'Italiano'},
+  {code:'tr', name:'Turkish',    native:'Türkçe'},
+  {code:'fr', name:'French',     native:'Français'},
+  {code:'de', name:'German',     native:'Deutsch'},
+  {code:'pt', name:'Portuguese', native:'Português'},
+  {code:'ja', name:'Japanese',   native:'日本語'},
+  {code:'ko', name:'Korean',     native:'한국어'},
+];
+// You can LEARN all of the above. "I speak" (native) is kept lean — the interface
+// is in English, so we only offer big native-speaker markets as the spoken language.
+const NATIVE_LANGS = new Set(['en', 'es', 'zh', 'ru', 'kk']);
+const canSpeak = code => NATIVE_LANGS.has(code);
+
+/* ---- 2. Sample objects (placeholder words, like the prototype) --------- */
+/* Each object has two gradient colours, an organic "blob" radius, the word
+   in every language, and an example sentence in every language.            */
+const OBJECTS = {
+  leaf:  {label:'leaf',  a:'#a9d69a', b:'#7cbf83', r:'62% 38% 55% 45% / 55% 48% 52% 45%', forms:{en:'the leaf',es:'la hoja',zh:'叶子',ru:'лист',kk:'жапырақ'}, ex:{en:'The leaf is green.',es:'La hoja es verde.',zh:'叶子是绿色的。',ru:'Лист зелёный.',kk:'Жапырақ жасыл.'}},
+  book:  {label:'book',  a:'#eccb86', b:'#dcab5e', r:'42% 58% 46% 54% / 56% 42% 58% 44%', forms:{en:'the book',es:'el libro',zh:'书',ru:'книга',kk:'кітап'}, ex:{en:'The book is interesting.',es:'El libro es interesante.',zh:'这本书很有趣。',ru:'Книга интересная.',kk:'Кітап қызық.'}},
+  cup:   {label:'cup',   a:'#a7c6ee', b:'#7ba2dd', r:'52% 48% 40% 60% / 58% 52% 48% 42%', forms:{en:'the cup',es:'la taza',zh:'杯子',ru:'чашка',kk:'кесе'}, ex:{en:'The cup is on the table.',es:'La taza está en la mesa.',zh:'杯子在桌子上。',ru:'Чашка на столе.',kk:'Кесе үстелде тұр.'}},
+  key:   {label:'key',   a:'#eedb8a', b:'#dcc35e', r:'58% 42% 60% 40% / 44% 56% 44% 56%', forms:{en:'the key',es:'la llave',zh:'钥匙',ru:'ключ',kk:'кілт'}, ex:{en:'The key opens the door.',es:'La llave abre la puerta.',zh:'钥匙能开门。',ru:'Ключ открывает дверь.',kk:'Кілт есікті ашады.'}},
+  plant: {label:'plant', a:'#94dcc6', b:'#6cc4ac', r:'46% 54% 58% 42% / 52% 46% 54% 48%', forms:{en:'the plant',es:'la planta',zh:'植物',ru:'растение',kk:'өсімдік'}, ex:{en:'The plant needs water.',es:'La planta necesita agua.',zh:'植物需要水。',ru:'Растению нужна вода.',kk:'Өсімдікке су керек.'}},
+  chair: {label:'chair', a:'#e6b495', b:'#d2926d', r:'40% 60% 52% 48% / 60% 40% 56% 44%', forms:{en:'the chair',es:'la silla',zh:'椅子',ru:'стул',kk:'орындық'}, ex:{en:'The chair is made of wood.',es:'La silla es de madera.',zh:'椅子是木头做的。',ru:'Стул из дерева.',kk:'Орындық ағаштан жасалған.'}},
+  lamp:  {label:'lamp',  a:'#f3c596', b:'#e6a76e', r:'56% 44% 48% 52% / 46% 54% 46% 54%', forms:{en:'the lamp',es:'la lámpara',zh:'灯',ru:'лампа',kk:'шам'}, ex:{en:'The lamp gives light.',es:'La lámpara da luz.',zh:'灯发出光。',ru:'Лампа даёт свет.',kk:'Шам жарық береді.'}},
+  window:{label:'window',a:'#b3dbee', b:'#88c1de', r:'48% 52% 44% 56% / 54% 48% 52% 46%', forms:{en:'the window',es:'la ventana',zh:'窗户',ru:'окно',kk:'терезе'}, ex:{en:'The window is open.',es:'La ventana está abierta.',zh:'窗户开着。',ru:'Окно открыто.',kk:'Терезе ашық.'}},
+};
+
+/* ---- 3. Themes (background atmospheres) -------------------------------- */
+const GLASS = {'--glass':'rgba(255,255,255,0.46)','--glass-strong':'rgba(255,255,255,0.66)','--glass-brd':'rgba(255,255,255,0.66)','--sheet':'rgba(248,249,247,0.82)'};
+const THEMES = {
+  Meadow:{...GLASS,'--bg':'radial-gradient(130% 80% at 50% 6%, rgba(255,255,255,.6) 0%, transparent 52%), linear-gradient(180deg,#a8c7df 0%,#c1d3d9 32%,#cfd6cc 50%,#bcc8a6 74%,#a3b288 100%)','--mtn':'rgba(92,118,134,0.42)','--field':'linear-gradient(180deg,#cddbe4 0%,#dde3dd 42%,#e7eae3 100%)','--field-fade':'rgba(221,227,221,0.72)','--ink':'#1d2329','--ink-soft':'rgba(29,35,41,0.62)','--cta':'#1c2127','--cta-ink':'#f3f4f1','--bg-solid':'#cfd6cc'},
+  Dawn:{...GLASS,'--bg':'radial-gradient(130% 80% at 50% 6%, rgba(255,255,255,.66) 0%, transparent 52%), linear-gradient(180deg,#e6c7b4 0%,#eedacb 32%,#ece0d0 50%,#dcc8b2 74%,#cbb59b 100%)','--mtn':'rgba(150,118,98,0.4)','--field':'linear-gradient(180deg,#eedfd3 0%,#f1e8dc 42%,#f4ede3 100%)','--field-fade':'rgba(241,232,220,0.74)','--ink':'#2a221c','--ink-soft':'rgba(42,34,28,0.6)','--cta':'#261d16','--cta-ink':'#f6efe7','--bg-solid':'#ece0d0'},
+  Mist:{...GLASS,'--bg':'radial-gradient(130% 80% at 50% 6%, rgba(255,255,255,.66) 0%, transparent 52%), linear-gradient(180deg,#bcc4cd 0%,#d0d6db 32%,#dadee1 50%,#ccd2d7 74%,#bcc3ca 100%)','--mtn':'rgba(118,128,140,0.42)','--field':'linear-gradient(180deg,#d6dbe0 0%,#e3e6e9 42%,#ebedef 100%)','--field-fade':'rgba(227,230,233,0.74)','--ink':'#23282e','--ink-soft':'rgba(35,40,46,0.6)','--cta':'#20242a','--cta-ink':'#f2f3f4','--bg-solid':'#dadee1'},
+};
+
+/* ---- 4. Saved state — tiny settings in localStorage, the collection
+   (cards + cut-out images) in IndexedDB (which holds far more). ---------- */
+const OLD_KEY = 'lumi.v1';             // previous single-blob localStorage key (for migration)
+const SETTINGS_KEY = 'lumi.settings';  // tiny: spoken / learning / theme / onboarded
+const DB_NAME = 'lumi', DB_STORE = 'kv', JOURNALS_KEY = 'journals';
+
+// ---- Free tier / Lumi Pro ------------------------------------------------
+const CAPTURE_KEY = 'lumi.captures';   // lifetime count of saved words (the free-tier meter)
+const PREMIUM_KEY = 'lumi.premium';    // '1' once this person is on Lumi Pro
+const FREE_LIMIT  = 5;                 // words you can collect free before Pro is needed
+// Polar hosted-checkout links (PRODUCTION). The in-app buttons append the signed-in
+// user's id + email so the webhook can unlock the right account after payment.
+const POLAR_MONTHLY_URL = 'https://buy.polar.sh/polar_cl_YFzisyctIXO4OOpOGohrEXatdd7IkMTaGoYxV4LVLat';
+const POLAR_ANNUAL_URL  = 'https://buy.polar.sh/polar_cl_h0ng8vruSd40zV2x6t0mMe7phxbmaI7bsK80p3dWfTO';
+// Polar customer portal — subscribers log in with their email to manage/cancel.
+const POLAR_PORTAL_URL = 'https://polar.sh/lumiwords/portal';
+
+function loadSettings(){
+  try { const s = JSON.parse(localStorage.getItem(SETTINGS_KEY)); if(s) return s; } catch(e){}
+  try { const old = JSON.parse(localStorage.getItem(OLD_KEY)); if(old) return old; } catch(e){}  // old shape
+  return {};
+}
+function saveSettings(){
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      spoken: state.spoken, learning: state.learning, theme: state.theme, onboarded: state.onboarded,
+    }));
+  } catch(e){ console.warn('settings save failed', e); }
+}
+// IndexedDB key/value helpers (large storage, for the collection + images).
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function idbSet(key, val){
+  return openDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    tx.objectStore(DB_STORE).put(val, key);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function idbGet(key){
+  return openDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, 'readonly');
+    const rq = tx.objectStore(DB_STORE).get(key);
+    rq.onsuccess = () => resolve(rq.result);
+    rq.onerror = () => reject(rq.error);
+  }));
+}
+// Save settings (sync, tiny) + the collection (IndexedDB, large). Returns success.
+async function saveStore(){
+  saveSettings();
+  try { await idbSet(JOURNALS_KEY, state.journals); return true; }
+  catch(e){ console.warn('Could not save collection:', e); return false; }
+}
+// ---- Free-tier meter helpers --------------------------------------------
+function loadCaptureCount(){ const v = localStorage.getItem(CAPTURE_KEY); return v == null ? null : (parseInt(v, 10) || 0); }
+function saveCaptureCount(){ try { localStorage.setItem(CAPTURE_KEY, String(state.captureCount || 0)); } catch(e){} }
+function isPremium(){ return !!state.premium; }
+function freeLeft(){ return Math.max(0, FREE_LIMIT - (state.captureCount || 0)); }
+function atFreeLimit(){ return !isPremium() && (state.captureCount || 0) >= FREE_LIMIT; }
+// Opens the Polar checkout for a plan (or explains it's coming if no link is set yet).
+function openCheckout(url){
+  if(!url){ showToast('Payments are being set up — coming very soon!', true); return; }
+  // Remember we're heading to checkout, so when Polar redirects back we can poll for
+  // the upgrade and lift the paywall automatically (the webhook lands a moment later).
+  try { localStorage.setItem('lumi.pendingUpgrade', String(Date.now())); } catch(_){}
+  try {
+    const u = new URL(url);
+    // Tell Polar who this is, so the webhook can unlock the right account after payment.
+    if(state.user){
+      if(state.user.id){ u.searchParams.set('customer_external_id', state.user.id); u.searchParams.set('metadata[user_id]', state.user.id); }
+      if(state.user.email) u.searchParams.set('customer_email', state.user.email);
+    }
+    window.location.href = u.toString();
+  } catch(e){ window.location.href = url; }
+}
+// Subscribing requires an account (so the webhook can unlock the right one). If a logged-out
+// visitor taps a plan, remember it, send them to sign up, and resume checkout once they're in.
+function startCheckout(plan, url){
+  if(!state.user){
+    try { localStorage.setItem('lumi.pendingPlan', plan); } catch(_){}
+    state.authMode = 'signup'; state.authError = ''; state.authNotice = t('auth.saveNotice');
+    go('auth');
+    return;
+  }
+  openCheckout(url);
+}
+function resumePendingPlan(){
+  let plan; try { plan = localStorage.getItem('lumi.pendingPlan'); } catch(_){ return; }
+  if(!plan || !state.user) return;
+  try { localStorage.removeItem('lumi.pendingPlan'); } catch(_){}
+  const url = plan === 'annual' ? POLAR_ANNUAL_URL : POLAR_MONTHLY_URL;
+  setTimeout(() => openCheckout(url), 500);   // let the sign-in settle, then head to Polar
+}
+// After returning from checkout, the subscription webhook may take a couple of seconds
+// to land. Poll the account's Pro status so the paywall lifts on its own — no reload.
+async function pollPremiumAfterCheckout(){
+  let flag; try { flag = localStorage.getItem('lumi.pendingUpgrade'); } catch(_){ return; }
+  if(!flag || !state.user) return;
+  const age = Date.now() - (parseInt(flag, 10) || 0);
+  if(age > 30 * 60 * 1000){ try { localStorage.removeItem('lumi.pendingUpgrade'); } catch(_){} return; }   // stale — ignore
+  showToast('Activating your subscription…', true);
+  let tries = 0;
+  const tick = async () => {
+    await refreshPremium();
+    if(state.premium){
+      try { localStorage.removeItem('lumi.pendingUpgrade'); } catch(_){}
+      showToast('Welcome to Lumi Pro! 🎉', true);
+      return;
+    }
+    if(++tries < 12){ setTimeout(tick, 2000); }                       // keep checking ~24s
+    else { try { localStorage.removeItem('lumi.pendingUpgrade'); } catch(_){}
+      showToast("Almost there — if Pro isn't active shortly, refresh the page.", false); }
+  };
+  setTimeout(tick, 800);   // brief head start so the webhook can land first
+}
+
+/* ---- 5. Live app state ------------------------------------------------- */
+const saved0 = loadSettings();
+const state = {
+  screen:   'loading',   // show a spinner until the account check finishes
+  onboarded: !!saved0.onboarded,
+  spoken:   canSpeak(saved0.spoken) ? saved0.spoken : 'en',   // native must be a supported "I speak" language
+  learning: saved0.learning || 'es',
+  theme:    saved0.theme    || 'Meadow',
+  journals: { en:[], es:[], zh:[], ru:[], kk:[] },   // hydrated from IndexedDB below
+  current:  null,    // the object currently being shown on the result screen
+  saved:    false,   // has the current result been saved?
+  flipped:  {},      // which collection cards are flipped (by id)
+  sheet:    null,    // 'switch' | 'settings' | null
+  sheetTarget:'learning', // which field the language sheet is editing
+  toast:    null,    // toast message text
+  procPhase:0,       // 0 = "Removing background…", 1 = "Finding the word…"
+  reveal:   false,   // play the cut-out reveal animation on this render
+  // --- accounts ---
+  user:     null,    // the signed-in Supabase user (or null)
+  authMode: 'signin',// 'signin' | 'signup'
+  authEmail:'',      // kept so an error re-render doesn't wipe the field
+  authPass: '',
+  authError:'',
+  authNotice:'',     // neutral info message (e.g. "check your email")
+  authBusy: false,
+  authReady:false,   // has the initial session check finished?
+  // --- free tier / Pro ---
+  captureCount: loadCaptureCount() || 0,   // lifetime words saved (free meter)
+  premium: localStorage.getItem(PREMIUM_KEY) === '1',
+};
+LANGS.forEach(l => { if(!state.journals[l.code]) state.journals[l.code] = []; });
+// Dev/test toggle: open /app?pro=on to become Pro (or ?pro=off) without paying.
+(function(){
+  try {
+    const p = new URLSearchParams(location.search).get('pro');
+    if(p === 'on' || p === 'off'){
+      state.premium = (p === 'on');
+      localStorage.setItem(PREMIUM_KEY, state.premium ? '1' : '0');
+      history.replaceState(null, '', location.pathname);   // tidy the URL back to /app
+    }
+  } catch(e){}
+})();
+// Live A/B test for object naming (temporary). ?ai=gemini or ?ai=qwen picks the vision
+// model; ?direct=1 uses that model's OWN Kazakh/target words (skips Google Translate).
+// The choice sticks so you can shoot several photos to compare. ?ai=off (and ?direct=off)
+// clears it and returns to the normal Qwen + Google pipeline.
+const AITEST_KEY = 'lumi.aitest';
+let AITEST = (function(){ try { return JSON.parse(localStorage.getItem(AITEST_KEY) || '{}') || {}; } catch(e){ return {}; } })();
+(function(){
+  try {
+    const q = new URLSearchParams(location.search);
+    const ai = q.get('ai'), direct = q.get('direct');
+    let changed = false;
+    if(ai !== null){ if(ai === 'off' || ai === '') delete AITEST.provider; else AITEST.provider = ai; changed = true; }
+    if(direct !== null){ if(direct === 'off' || direct === '0' || direct === '') delete AITEST.direct; else AITEST.direct = true; changed = true; }
+    if(changed){ localStorage.setItem(AITEST_KEY, JSON.stringify(AITEST)); }
+  } catch(e){}
+})();
+
+// Load the saved collection from IndexedDB; migrate the old localStorage blob once.
+(async function hydrateJournals(){
+  try {
+    let journals = await idbGet(JOURNALS_KEY);
+    if(!journals){
+      try {
+        const old = JSON.parse(localStorage.getItem(OLD_KEY));
+        if(old && old.journals){ journals = old.journals; await idbSet(JOURNALS_KEY, journals); }
+      } catch(e){}
+    }
+    if(journals){
+      state.journals = journals;
+      LANGS.forEach(l => { if(!state.journals[l.code]) state.journals[l.code] = []; });
+    }
+    // First run of the free meter: seed it from any words already collected.
+    if(loadCaptureCount() == null){
+      state.captureCount = Object.values(state.journals).reduce((n, arr) => n + (arr ? arr.length : 0), 0);
+      saveCaptureCount();
+    }
+    saveSettings();
+    try { localStorage.removeItem(OLD_KEY); } catch(e){}   // free the old (full) blob
+    render();
+  } catch(e){ console.warn('Could not load collection:', e); }
+})();
+
+let timers = [];
+function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+
+/* ---- 6. Small helpers -------------------------------------------------- */
+const langOf = code => LANGS.find(l => l.code === code) || LANGS[0];
+const theme  = () => THEMES[state.theme] || THEMES.Meadow;
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// A romanized reading under a word: pinyin for Chinese, Revised Romanization for
+// Korean. (Japanese romaji needs a dictionary — handled server-side, coming next.)
+function pinyinOf(text, lang){
+  if(lang !== 'zh' || !text || !window.lumiPinyin) return '';
+  const p = (window.lumiPinyin(text) || '').trim();
+  return (p && p !== String(text)) ? p : '';   // hide if the library returned the raw text
+}
+function readingOf(text, lang, stored){
+  if(!text) return '';
+  if(lang === 'zh') return pinyinOf(text, 'zh');
+  if(lang === 'ko' && window.lumiRomanizeKo){
+    const r = (window.lumiRomanizeKo(text) || '').trim();
+    return (r && r !== String(text)) ? r : '';
+  }
+  if(lang === 'ja') return (stored || '').trim();   // Japanese romaji comes from the AI, stored on the card
+  return '';
+}
+// Turn a {key:value} style object into an inline style string
+function css(obj){ return Object.entries(obj).map(([k,v]) => `${k.replace(/[A-Z]/g,m=>'-'+m.toLowerCase())}:${v}`).join(';'); }
+
+/* ---- 6b. Interface language (i18n) ------------------------------------
+   The app UI follows the "I speak" language. t('key') looks up a string in
+   the current UI language, falling back to English. I18N is filled below. */
+const I18N = {
+  'auth.welcome': { en: 'Welcome to Lumi', es: 'Te damos la bienvenida a Lumi', zh: '欢迎使用 Lumi', ru: 'Добро пожаловать в Lumi', kk: 'Lumi-ге қош келдіңіз' },
+  'auth.signupTitle': { en: 'Create your account', es: 'Crea tu cuenta', zh: '创建你的账户', ru: 'Создайте аккаунт', kk: 'Аккаунт жасаңыз' },
+  'auth.resetTitle': { en: 'Reset your password', es: 'Restablece tu contraseña', zh: '重置你的密码', ru: 'Сброс пароля', kk: 'Құпия сөзді қалпына келтіру' },
+  'auth.newpassTitle': { en: 'Set a new password', es: 'Establece una nueva contraseña', zh: '设置新密码', ru: 'Задайте новый пароль', kk: 'Жаңа құпия сөз орнатыңыз' },
+  'auth.welcomeSub': { en: 'Sign in to reach your collection on any device.', es: 'Inicia sesión para acceder a tu colección en cualquier dispositivo.', zh: '登录即可在任何设备上访问你的收藏。', ru: 'Войдите, чтобы открыть свою коллекцию на любом устройстве.', kk: 'Кез келген құрылғыда жинағыңызды ашу үшін кіріңіз.' },
+  'auth.signupSub': { en: 'Sign up to save your collection and sync it across devices.', es: 'Regístrate para guardar tu colección y sincronizarla entre dispositivos.', zh: '注册以保存你的收藏，并在各设备间同步。', ru: 'Зарегистрируйтесь, чтобы сохранить коллекцию и синхронизировать её между устройствами.', kk: 'Жинағыңызды сақтап, құрылғылар арасында синхрондау үшін тіркеліңіз.' },
+  'auth.resetSub': { en: "Enter your email and we'll send you a link to set a new password.", es: 'Introduce tu correo y te enviaremos un enlace para crear una nueva contraseña.', zh: '输入你的邮箱，我们会发送一个链接用于设置新密码。', ru: 'Введите email, и мы пришлём ссылку для создания нового пароля.', kk: 'Email-іңізді енгізіңіз, жаңа құпия сөз орнату үшін сілтеме жібереміз.' },
+  'auth.newpassSub': { en: 'Choose a new password for your account.', es: 'Elige una nueva contraseña para tu cuenta.', zh: '为你的账户选择一个新密码。', ru: 'Выберите новый пароль для аккаунта.', kk: 'Аккаунтыңызға жаңа құпия сөз таңдаңыз.' },
+  'auth.wait': { en: 'Please wait…', es: 'Espera un momento…', zh: '请稍候…', ru: 'Подождите…', kk: 'Күте тұрыңыз…' },
+  'auth.updatePass': { en: 'Update password', es: 'Actualizar contraseña', zh: '更新密码', ru: 'Обновить пароль', kk: 'Құпия сөзді жаңарту' },
+  'auth.sendReset': { en: 'Send reset link', es: 'Enviar enlace', zh: '发送重置链接', ru: 'Отправить ссылку', kk: 'Сілтемені жіберу' },
+  'auth.createAccount': { en: 'Create account', es: 'Crear cuenta', zh: '创建账户', ru: 'Создать аккаунт', kk: 'Аккаунт жасау' },
+  'auth.signin': { en: 'Sign in', es: 'Iniciar sesión', zh: '登录', ru: 'Войти', kk: 'Кіру' },
+  'auth.email': { en: 'Email', es: 'Correo', zh: '邮箱', ru: 'Email', kk: 'Email' },
+  'auth.password': { en: 'Password', es: 'Contraseña', zh: '密码', ru: 'Пароль', kk: 'Құпия сөз' },
+  'auth.newPassword': { en: 'New password', es: 'Nueva contraseña', zh: '新密码', ru: 'Новый пароль', kk: 'Жаңа құпия сөз' },
+  'auth.forgot': { en: 'Forgot password?', es: '¿Olvidaste tu contraseña?', zh: '忘记密码？', ru: 'Забыли пароль?', kk: 'Құпия сөзді ұмыттыңыз ба?' },
+  'auth.or': { en: 'or', es: 'o', zh: '或', ru: 'или', kk: 'немесе' },
+  'auth.google': { en: 'Continue with Google', es: 'Continuar con Google', zh: '使用 Google 继续', ru: 'Продолжить с Google', kk: 'Google арқылы жалғастыру' },
+  'auth.backToSignin': { en: 'Back to sign in', es: 'Volver a iniciar sesión', zh: '返回登录', ru: 'Назад ко входу', kk: 'Кіруге оралу' },
+  'auth.haveAccount': { en: 'Already have an account?', es: '¿Ya tienes una cuenta?', zh: '已经有账户了？', ru: 'Уже есть аккаунт?', kk: 'Аккаунтыңыз бар ма?' },
+  'auth.noAccount': { en: "Don't have an account?", es: '¿No tienes una cuenta?', zh: '还没有账户？', ru: 'Нет аккаунта?', kk: 'Аккаунтыңыз жоқ па?' },
+  'auth.signup': { en: 'Sign up', es: 'Regístrate', zh: '注册', ru: 'Зарегистрироваться', kk: 'Тіркелу' },
+  'auth.checkEmail': { en: 'Check your email for a sign-in link.', es: 'Revisa tu correo para el enlace de acceso.', zh: '请查收邮箱中的登录链接。', ru: 'Проверьте почту — там ссылка для входа.', kk: 'Кіру сілтемесі үшін email-іңізді тексеріңіз.' },
+  'auth.saveNotice': { en: "Create an account to save the words you've collected — and keep them on every device.", es: 'Crea una cuenta para guardar las palabras que has recogido — y tenerlas en todos tus dispositivos.', zh: '创建账户以保存你收集的单词 —— 并在所有设备上同步。', ru: 'Создайте аккаунт, чтобы сохранить собранные слова — и открывать их на всех устройствах.', kk: 'Жинаған сөздеріңізді сақтау үшін аккаунт жасаңыз — олар барлық құрылғыда болады.' },
+  'auth.enterEmailFirst': { en: 'Enter your email first, then tap the link option.', es: 'Introduce primero tu correo y luego toca la opción del enlace.', zh: '请先输入邮箱，再点击链接选项。', ru: 'Сначала введите email, затем нажмите вариант со ссылкой.', kk: 'Алдымен email-іңізді енгізіп, содан кейін сілтеме опциясын басыңыз.' },
+  'auth.networkError': { en: 'Network error — please try again.', es: 'Error de red: inténtalo de nuevo.', zh: '网络错误 — 请重试。', ru: 'Ошибка сети — попробуйте ещё раз.', kk: 'Желі қатесі — қайталап көріңіз.' },
+  'auth.somethingWrong': { en: 'Something went wrong.', es: 'Algo salió mal.', zh: '出了点问题。', ru: 'Что-то пошло не так.', kk: 'Бірдеңе дұрыс болмады.' },
+  'auth.googleFail': { en: 'Could not start Google sign-in.', es: 'No se pudo iniciar sesión con Google.', zh: '无法开始 Google 登录。', ru: 'Не удалось начать вход через Google.', kk: 'Google арқылы кіру басталмады.' },
+  'auth.verifySent': { en: 'We sent a verification link to {email}. Open it to finish signing up, then come back and sign in.', es: 'Enviamos un enlace de verificación a {email}. Ábrelo para terminar el registro y luego vuelve e inicia sesión.', zh: '我们已向 {email} 发送验证链接。打开链接完成注册，然后返回登录。', ru: 'Мы отправили ссылку для подтверждения на {email}. Откройте её, чтобы завершить регистрацию, затем вернитесь и войдите.', kk: '{email} мекенжайына растау сілтемесін жібердік. Тіркелуді аяқтау үшін оны ашыңыз, содан кейін оралып кіріңіз.' },
+  'ob.speak': { en: 'I speak', es: 'Hablo', zh: '我讲', ru: 'Я говорю на', kk: 'Мен сөйлеймін' },
+  'ob.learning': { en: "I'm learning", es: 'Estoy aprendiendo', zh: '我在学', ru: 'Я учу', kk: 'Мен үйреніп жүрмін' },
+  'ob.begin': { en: 'Begin', es: 'Empezar', zh: '开始', ru: 'Начать', kk: 'Бастау' },
+  'ob.heading': { en: 'Learn the words all around you.', es: 'Aprende las palabras que te rodean.', zh: '认识你身边的每一个词。', ru: 'Учите слова всего, что вокруг вас.', kk: 'Айналаңыздағы сөздерді үйреніңіз.' },
+  'ob.sub': { en: "Point your phone at anything. Lumi names it in the language you're learning and keeps it as a card.", es: 'Apunta tu teléfono a cualquier cosa. Lumi la nombra en el idioma que aprendes y la guarda como una tarjeta.', zh: '把手机对准任何东西。Lumi 会用你正在学的语言说出它的名字，并保存为卡片。', ru: 'Наведите телефон на что угодно. Lumi назовёт это на языке, который вы учите, и сохранит как карточку.', kk: 'Телефоныңызды кез келген нәрсеге бағыттаңыз. Lumi оны үйреніп жатқан тіліңізде атап, карточка ретінде сақтайды.' },
+  'common.tagline': { en: 'Point · Snap · Collect', es: 'Apunta · Captura · Colecciona', zh: '对准 · 拍照 · 收藏', ru: 'Наведи · Сними · Собери', kk: 'Бағытта · Түсір · Жина' },
+  'home.heading': { en: "What's in front of you?", es: '¿Qué tienes delante?', zh: '你面前是什么？', ru: 'Что перед вами?', kk: 'Алдыңызда не тұр?' },
+  'home.sub': { en: 'Point at an object to capture it.', es: 'Apunta a un objeto para capturarlo.', zh: '对准物体即可捕捉。', ru: 'Наведите на предмет, чтобы снять его.', kk: 'Түсіру үшін затқа бағыттаңыз.' },
+  'home.upload': { en: 'or upload a photo', es: 'o sube una foto', zh: '或上传照片', ru: 'или загрузите фото', kk: 'немесе фото жүктеңіз' },
+  'home.privacy': { en: 'Your photos stay private on your device', es: 'Tus fotos permanecen privadas en tu dispositivo', zh: '你的照片私密保存在你的设备上', ru: 'Ваши фото остаются приватными на устройстве', kk: 'Фотоларыңыз құрылғыңызда құпия сақталады' },
+  'home.reviewTitle': { en: "Today's review", es: 'Repaso de hoy', zh: '今日复习', ru: 'Повторение на сегодня', kk: 'Бүгінгі қайталау' },
+  'home.reviewReady': { en: 'ready when you are', es: 'listo cuando quieras', zh: '随时可以开始', ru: 'готово, когда вы будете', kk: 'дайын болғанда бастаңыз' },
+  'home.unlockPro': { en: 'Unlock Lumi Pro', es: 'Desbloquea Lumi Pro', zh: '解锁 Lumi Pro', ru: 'Открыть Lumi Pro', kk: 'Lumi Pro-ны ашу' },
+  'result.newWord': { en: 'A new word', es: 'Una nueva palabra', zh: '一个新词', ru: 'Новое слово', kk: 'Жаңа сөз' },
+  'result.save': { en: 'Save to collection', es: 'Guardar en la colección', zh: '保存到收藏', ru: 'Сохранить в коллекцию', kk: 'Жинаққа сақтау' },
+  'result.saved': { en: 'Saved ✓', es: 'Guardado ✓', zh: '已保存 ✓', ru: 'Сохранено ✓', kk: 'Сақталды ✓' },
+  'result.retake': { en: 'Retake', es: 'Repetir', zh: '重拍', ru: 'Переснять', kk: 'Қайта түсіру' },
+  'result.share': { en: 'Share as image', es: 'Compartir como imagen', zh: '分享为图片', ru: 'Поделиться картинкой', kk: 'Сурет ретінде бөлісу' },
+  'result.tryAgain': { en: 'Try again', es: 'Intentar de nuevo', zh: '重试', ru: 'Попробовать снова', kk: 'Қайталап көру' },
+  'result.back': { en: 'Back', es: 'Volver', zh: '返回', ru: 'Назад', kk: 'Артқа' },
+  'result.learningLabel': { en: 'Learning', es: 'Aprendiendo', zh: '正在学', ru: 'Изучаю', kk: 'Үйреніп жүрмін' },
+  'result.noConnTitle': { en: 'No connection', es: 'Sin conexión', zh: '无网络连接', ru: 'Нет соединения', kk: 'Байланыс жоқ' },
+  'result.hmm': { en: 'Hmm…', es: 'Mmm…', zh: '嗯…', ru: 'Хм…', kk: 'Хм…' },
+  'result.noConnMsg': { en: 'Naming needs internet. Your saved collection still works offline.', es: 'Nombrar necesita internet. Tu colección guardada sigue funcionando sin conexión.', zh: '命名需要联网。你保存的收藏在离线时仍可使用。', ru: 'Для распознавания нужен интернет. Сохранённая коллекция работает и офлайн.', kk: 'Атау үшін интернет қажет. Сақталған жинағыңыз офлайн да жұмыс істейді.' },
+  'result.serverMsg': { en: 'Something went wrong naming this one. Please try again.', es: 'Algo salió mal al nombrar esto. Inténtalo de nuevo.', zh: '命名这个时出了点问题。请重试。', ru: 'Не удалось распознать это. Попробуйте ещё раз.', kk: 'Мұны атау кезінде қате кетті. Қайталап көріңіз.' },
+  'result.notFoundMsg': { en: "Couldn't find a clear object. Try getting closer, with one object centred.", es: 'No se encontró un objeto claro. Acércate y centra un solo objeto.', zh: '未能识别清晰的物体。试着靠近些，让单个物体居中。', ru: 'Не удалось найти чёткий предмет. Подойдите ближе и разместите один предмет по центру.', kk: 'Анық зат табылмады. Жақынырақ келіп, бір затты ортаға қойып көріңіз.' },
+  'journal.title': { en: 'Your collection', es: 'Tu colección', zh: '你的收藏', ru: 'Ваша коллекция', kk: 'Жинағыңыз' },
+  'journal.tabCards': { en: 'Cards', es: 'Tarjetas', zh: '卡片', ru: 'Карточки', kk: 'Карточкалар' },
+  'journal.tabReview': { en: 'Review', es: 'Repaso', zh: '复习', ru: 'Повторение', kk: 'Қайталау' },
+  'journal.tabCategories': { en: 'Categories', es: 'Categorías', zh: '分类', ru: 'Категории', kk: 'Санаттар' },
+  'journal.emptyTitle': { en: 'Nothing collected yet', es: 'Aún no has coleccionado nada', zh: '还没有收藏任何内容', ru: 'Пока ничего не собрано', kk: 'Әзірге ештеңе жиналмаған' },
+  'journal.emptySub': { en: 'Capture your first object and it lands here as a card.', es: 'Captura tu primer objeto y aparecerá aquí como una tarjeta.', zh: '捕捉你的第一个物体，它会作为卡片出现在这里。', ru: 'Снимите первый предмет — и он появится здесь как карточка.', kk: 'Алғашқы затыңызды түсіріңіз, ол осында карточка болып шығады.' },
+  'journal.capture': { en: 'Capture something', es: 'Captura algo', zh: '去捕捉一个物体', ru: 'Снять что-нибудь', kk: 'Бірдеңе түсіру' },
+  'card.means': { en: 'Means', es: 'Significa', zh: '意思是', ru: 'Значит', kk: 'Мағынасы' },
+  'review.whatsThis': { en: "What's this in {lang}?", es: '¿Cómo se dice esto en {lang}?', zh: '这个用{lang}怎么说？', ru: 'Как это будет на {lang}?', kk: 'Мұны {lang} тілінде қалай айтады?' },
+  'review.doneTitle': { en: 'All reviewed!', es: '¡Todo repasado!', zh: '全部复习完成！', ru: 'Всё повторено!', kk: 'Барлығы қайталанды!' },
+  'review.doneSub': { en: 'You went through all {w} in {lang}.', es: 'Repasaste todas las {w} en {lang}.', zh: '你已复习了{lang}中的全部{w}。', ru: 'Вы прошли все {w} на {lang}.', kk: '{lang} тіліндегі барлық {w} өттіңіз.' },
+  'review.again': { en: 'Review again', es: 'Repasar de nuevo', zh: '再次复习', ru: 'Повторить снова', kk: 'Қайта қайталау' },
+  'review.hint': { en: 'Tap to flip · swipe ← / → or use the buttons', es: 'Toca para girar · desliza ← / → o usa los botones', zh: '点击翻转 · 左右滑动 ← / → 或使用按钮', ru: 'Нажмите, чтобы перевернуть · смахивайте ← / → или используйте кнопки', kk: 'Аудару үшін басыңыз · ← / → сипаңыз немесе түймелерді қолданыңыз' },
+  'review.know': { en: 'KNOW', es: 'LA SÉ', zh: '认识', ru: 'ЗНАЮ', kk: 'БІЛЕМІН' },
+  'review.againBadge': { en: 'AGAIN', es: 'REPETIR', zh: '再来', ru: 'ЕЩЁ РАЗ', kk: 'ТАҒЫ' },
+  'review.knownToGo': { en: '{k} known · {t} to go', es: '{k} sabidas · {t} por repasar', zh: '已掌握 {k} · 还剩 {t}', ru: '{k} знаю · осталось {t}', kk: '{k} білемін · {t} қалды' },
+  'cat.sorting': { en: 'Sorting your words into categories…', es: 'Ordenando tus palabras en categorías…', zh: '正在将你的单词分类…', ru: 'Раскладываем ваши слова по категориям…', kk: 'Сөздеріңізді санаттарға бөліп жатырмыз…' },
+  'cat.Animals': { en: 'Animals', es: 'Animales', zh: '动物', ru: 'Животные', kk: 'Жануарлар' },
+  'cat.Plants': { en: 'Plants', es: 'Plantas', zh: '植物', ru: 'Растения', kk: 'Өсімдіктер' },
+  'cat.Food': { en: 'Food & Drink', es: 'Comida y bebida', zh: '食物和饮品', ru: 'Еда и напитки', kk: 'Тамақ пен сусын' },
+  'cat.Clothing': { en: 'Clothing', es: 'Ropa', zh: '服装', ru: 'Одежда', kk: 'Киім' },
+  'cat.Objects': { en: 'Objects', es: 'Objetos', zh: '物品', ru: 'Предметы', kk: 'Заттар' },
+  'cat.People': { en: 'People', es: 'Personas', zh: '人物', ru: 'Люди', kk: 'Адамдар' },
+  'cat.Vehicles': { en: 'Vehicles', es: 'Vehículos', zh: '交通工具', ru: 'Транспорт', kk: 'Көліктер' },
+  'cat.Places': { en: 'Places', es: 'Lugares', zh: '地点', ru: 'Места', kk: 'Орындар' },
+  'cat.Nature': { en: 'Nature', es: 'Naturaleza', zh: '自然', ru: 'Природа', kk: 'Табиғат' },
+  'cat.Other': { en: 'Other', es: 'Otros', zh: '其他', ru: 'Другое', kk: 'Басқа' },
+  'sheet.speakTitle': { en: 'I speak…', es: 'Hablo…', zh: '我讲…', ru: 'Я говорю на…', kk: 'Мен сөйлеймін…' },
+  'sheet.learningTitle': { en: 'What are you learning?', es: '¿Qué estás aprendiendo?', zh: '你在学什么？', ru: 'Что вы учите?', kk: 'Не үйреніп жүрсіз?' },
+  'sheet.speakSub': { en: 'Meanings appear in this language.', es: 'Los significados aparecen en este idioma.', zh: '释义将以此语言显示。', ru: 'Значения показываются на этом языке.', kk: 'Мағыналар осы тілде көрсетіледі.' },
+  'sheet.learningSub': { en: 'Each language keeps its own collection.', es: 'Cada idioma tiene su propia colección.', zh: '每种语言都有各自的收藏。', ru: 'У каждого языка своя коллекция.', kk: 'Әр тілдің өз жинағы бар.' },
+  'sheet.editTitle': { en: 'Edit card', es: 'Editar tarjeta', zh: '编辑卡片', ru: 'Изменить карточку', kk: 'Карточканы өңдеу' },
+  'sheet.editSub': { en: 'Fix the word or its translation — saved everywhere.', es: 'Corrige la palabra o su traducción: se guarda en todas partes.', zh: '修正单词或其翻译 — 将同步保存。', ru: 'Исправьте слово или перевод — сохранится везде.', kk: 'Сөзді немесе аудармасын түзетіңіз — барлық жерде сақталады.' },
+  'sheet.word': { en: 'Word', es: 'Palabra', zh: '单词', ru: 'Слово', kk: 'Сөз' },
+  'sheet.meaning': { en: 'Meaning', es: 'Significado', zh: '释义', ru: 'Значение', kk: 'Мағынасы' },
+  'sheet.example': { en: 'Example sentence', es: 'Frase de ejemplo', zh: '例句', ru: 'Пример предложения', kk: 'Мысал сөйлем' },
+  'sheet.saveChanges': { en: 'Save changes', es: 'Guardar cambios', zh: '保存更改', ru: 'Сохранить изменения', kk: 'Өзгерістерді сақтау' },
+  'sheet.deleteTitle': { en: 'Delete this word?', es: '¿Eliminar esta palabra?', zh: '删除这个单词？', ru: 'Удалить это слово?', kk: 'Бұл сөзді жою керек пе?' },
+  'sheet.deleteMsg': { en: '"{word}" will be removed from your collection on all your devices.', es: '"{word}" se eliminará de tu colección en todos tus dispositivos.', zh: '“{word}”将从你所有设备的收藏中移除。', ru: '«{word}» будет удалено из вашей коллекции на всех устройствах.', kk: '«{word}» барлық құрылғыларыңыздағы жинақтан жойылады.' },
+  'sheet.delete': { en: 'Delete', es: 'Eliminar', zh: '删除', ru: 'Удалить', kk: 'Жою' },
+  'sheet.cancel': { en: 'Cancel', es: 'Cancelar', zh: '取消', ru: 'Отмена', kk: 'Болдырмау' },
+  'sheet.shareCard': { en: 'Share as image', es: 'Compartir como imagen', zh: '分享为图片', ru: 'Поделиться картинкой', kk: 'Сурет ретінде бөлісу' },
+  'sheet.editWord': { en: 'Edit word', es: 'Editar palabra', zh: '编辑单词', ru: 'Изменить слово', kk: 'Сөзді өңдеу' },
+  'sheet.langTitle': { en: 'Languages', es: 'Idiomas', zh: '语言', ru: 'Языки', kk: 'Тілдер' },
+  'sheet.langSub': { en: "Set the language you speak and the one you're learning.", es: 'Elige el idioma que hablas y el que estás aprendiendo.', zh: '设置你所说的语言和正在学的语言。', ru: 'Укажите язык, на котором говорите, и тот, который учите.', kk: 'Сөйлейтін тіліңіз бен үйреніп жатқан тіліңізді таңдаңыз.' },
+  'sheet.iSpeak': { en: 'I speak', es: 'Hablo', zh: '我讲', ru: 'Я говорю на', kk: 'Мен сөйлеймін' },
+  'sheet.imLearning': { en: "I'm learning", es: 'Estoy aprendiendo', zh: '我在学', ru: 'Я учу', kk: 'Мен үйреніп жүрмін' },
+  'sheet.syncNote': { en: 'Your collection is saved to your account and synced across your devices.', es: 'Tu colección se guarda en tu cuenta y se sincroniza entre tus dispositivos.', zh: '你的收藏保存在账户中，并在各设备间同步。', ru: 'Ваша коллекция сохраняется в аккаунте и синхронизируется между устройствами.', kk: 'Жинағыңыз аккаунтыңызда сақталып, құрылғылар арасында синхрондалады.' },
+  'sheet.proActive': { en: 'Active — thank you 💛', es: 'Activo — gracias 💛', zh: '已激活 — 谢谢你 💛', ru: 'Активно — спасибо 💛', kk: 'Белсенді — рахмет 💛' },
+  'sheet.manage': { en: 'Manage', es: 'Gestionar', zh: '管理', ru: 'Управление', kk: 'Басқару' },
+  'sheet.signedIn': { en: 'Signed in', es: 'Sesión iniciada', zh: '已登录', ru: 'Вы вошли', kk: 'Кіргенсіз' },
+  'sheet.signOut': { en: 'Sign out', es: 'Cerrar sesión', zh: '退出登录', ru: 'Выйти', kk: 'Шығу' },
+  'sheet.account': { en: 'Account', es: 'Cuenta', zh: '账户', ru: 'Аккаунт', kk: 'Аккаунт' },
+  'sheet.saveSub': { en: 'Save your words & sync across devices', es: 'Guarda tus palabras y sincroniza entre dispositivos', zh: '保存单词并在设备间同步', ru: 'Сохраните слова и синхронизируйте между устройствами', kk: 'Сөздеріңізді сақтап, құрылғылар арасында синхрондаңыз' },
+  'sheet.signIn': { en: 'Sign in', es: 'Iniciar sesión', zh: '登录', ru: 'Войти', kk: 'Кіру' },
+  'share.saveTitle': { en: 'To save to your camera roll:', es: 'Para guardar en tu galería:', zh: '要保存到相册：', ru: 'Чтобы сохранить в галерею:', kk: 'Галереяға сақтау үшін:' },
+  'share.saveHint': { en: 'press &amp; hold the image above → <b>Save to Photos</b>.', es: 'mantén pulsada la imagen de arriba → <b>Guardar en Fotos</b>.', zh: '长按上方图片 → <b>存储到照片</b>。', ru: 'нажмите и удерживайте изображение выше → <b>Сохранить в Фото</b>.', kk: 'жоғарыдағы суретті басып тұрыңыз → <b>Фотоға сақтау</b>.' },
+  'share.postAnywhere': { en: 'Or tap <b>{word}</b> to post it anywhere.', es: 'O toca <b>{word}</b> para publicarla donde quieras.', zh: '或点击 <b>{word}</b> 分享到任意平台。', ru: 'Или нажмите <b>{word}</b>, чтобы опубликовать где угодно.', kk: 'Немесе оны кез келген жерде бөлісу үшін <b>{word}</b> басыңыз.' },
+  'share.shareSave': { en: 'Share / Save', es: 'Compartir / Guardar', zh: '分享 / 保存', ru: 'Поделиться / Сохранить', kk: 'Бөлісу / Сақтау' },
+  'share.saveImage': { en: 'Save image', es: 'Guardar imagen', zh: '保存图片', ru: 'Сохранить картинку', kk: 'Суретті сақтау' },
+  'share.share': { en: 'Share', es: 'Compartir', zh: '分享', ru: 'Поделиться', kk: 'Бөлісу' },
+  'share.save': { en: 'Save', es: 'Guardar', zh: '保存', ru: 'Сохранить', kk: 'Сақтау' },
+  'share.close': { en: 'Close', es: 'Cerrar', zh: '关闭', ru: 'Закрыть', kk: 'Жабу' },
+  'up.unlockTitle': { en: 'Unlock the whole world', es: 'Desbloquea el mundo entero', zh: '解锁整个世界', ru: 'Откройте весь мир', kk: 'Бүкіл әлемді ашыңыз' },
+  'up.gateSub': { en: "You've filled your free collection. Go Pro to keep capturing — unlimited words, in every language.", es: 'Has llenado tu colección gratuita. Pásate a Pro para seguir capturando: palabras ilimitadas, en todos los idiomas.', zh: '你的免费收藏已满。升级 Pro 继续捕捉 — 无限单词，支持所有语言。', ru: 'Ваша бесплатная коллекция заполнена. Перейдите на Pro, чтобы продолжать — безлимит слов на всех языках.', kk: 'Тегін жинағыңыз толды. Түсіруді жалғастыру үшін Pro-ға өтіңіз — барлық тілде шексіз сөз.' },
+  'up.saveSub': { en: 'Create a free account to save your words forever — then unlock unlimited capture with Pro.', es: 'Crea una cuenta gratis para guardar tus palabras para siempre — y desbloquea capturas ilimitadas con Pro.', zh: '创建免费账户，永久保存你的单词 —— 再用 Pro 解锁无限捕捉。', ru: 'Создайте бесплатный аккаунт, чтобы сохранить свои слова навсегда — а Pro откроет безлимитный захват.', kk: 'Сөздеріңізді мәңгілікке сақтау үшін тегін аккаунт жасаңыз — Pro шексіз түсіруді ашады.' },
+  'up.createFree': { en: 'Create a free account', es: 'Crea una cuenta gratis', zh: '创建免费账户', ru: 'Создать бесплатный аккаунт', kk: 'Тегін аккаунт жасау' },
+  'up.thenPro': { en: 'then unlock more', es: 'luego desbloquea más', zh: '然后解锁更多', ru: 'затем открыть больше', kk: 'содан кейін көбірек ашу' },
+  'up.haveAccount': { en: 'Already have an account? Sign in', es: '¿Ya tienes una cuenta? Inicia sesión', zh: '已有账户？登录', ru: 'Уже есть аккаунт? Войти', kk: 'Аккаунтыңыз бар ма? Кіру' },
+  'up.keepHint': { en: "Just want to keep the words you've made?", es: '¿Solo quieres guardar las palabras que has creado?', zh: '只想保存你已经收集的单词？', ru: 'Просто хотите сохранить собранные слова?', kk: 'Жинаған сөздеріңізді сақтағыңыз келе ме?' },
+  'up.signInSave': { en: 'Sign in to save them', es: 'Inicia sesión para guardarlas', zh: '登录以保存', ru: 'Войдите, чтобы сохранить', kk: 'Сақтау үшін кіріңіз' },
+  'up.collectedTitle': { en: "You've collected {w} 🎉", es: '¡Has coleccionado {w}! 🎉', zh: '你已收集 {w} 🎉', ru: 'Вы собрали {w} 🎉', kk: 'Сіз {w} жинадыңыз 🎉' },
+  'up.freeSub': { en: 'Free gives you {w} to fall in love. Pro sets the rest of the world loose.', es: 'Gratis te da {w} para enamorarte. Pro suelta el resto del mundo.', zh: '免费版给你 {w}，先爱上它。Pro 解锁整个世界。', ru: 'Бесплатно — {w}, чтобы влюбиться. Pro открывает весь остальной мир.', kk: 'Тегін нұсқа — ғашық болуға {w}. Pro қалған әлемді ашады.' },
+  'up.annual': { en: 'Annual', es: 'Anual', zh: '年付', ru: 'Год', kk: 'Жылдық' },
+  'up.monthly': { en: 'Monthly', es: 'Mensual', zh: '月付', ru: 'Месяц', kk: 'Айлық' },
+  'up.perYear': { en: '/year', es: '/año', zh: '/年', ru: '/год', kk: '/жыл' },
+  'up.perMonth': { en: '/month', es: '/mes', zh: '/月', ru: '/мес', kk: '/ай' },
+  'up.bestValue': { en: 'Best value · Save 33%', es: 'Mejor precio · Ahorra 33%', zh: '最超值 · 省 33%', ru: 'Выгоднее всего · Экономия 33%', kk: 'Ең тиімді · 33% үнемдеңіз' },
+  'up.annualNote': { en: 'Just $3.33/mo, billed yearly', es: 'Solo $3.33/mes, facturado anualmente', zh: '仅 $3.33/月，按年计费', ru: 'Всего $3.33/мес при оплате за год', kk: 'Айына небәрі $3.33, жылына төленеді' },
+  'up.monthlyNote': { en: 'Cancel anytime', es: 'Cancela cuando quieras', zh: '随时可取消', ru: 'Отмена в любое время', kk: 'Кез келген уақытта бас тартыңыз' },
+  'up.features': { en: 'Unlimited words · All 12 languages<br>Pronunciation · Review mode · Synced', es: 'Palabras ilimitadas · Los 12 idiomas<br>Pronunciación · Modo repaso · Sincronizado', zh: '无限单词 · 全部 12 种语言<br>发音 · 复习模式 · 同步', ru: 'Безлимит слов · Все 12 языков<br>Произношение · Режим повторения · Синхронизация', kk: 'Шексіз сөз · 12 тілдің бәрі<br>Айтылуы · Қайталау режимі · Синхрондау' },
+  'up.maybeLater': { en: 'Maybe later', es: 'Quizá más tarde', zh: '以后再说', ru: 'Может быть позже', kk: 'Кейінірек' },
+  'proc.cutting': { en: 'Cutting it out…', es: 'Recortándolo…', zh: '正在抠图…', ru: 'Вырезаем…', kk: 'Қиып жатырмыз…' },
+  'proc.finding': { en: 'Finding the word…', es: 'Buscando la palabra…', zh: '正在查找词语…', ru: 'Ищем слово…', kk: 'Сөзді іздеп жатырмыз…' },
+  'proc.firstUse': { en: "Setting up on first use — this can take a moment. It's quick after that.", es: 'Configurando en el primer uso: puede tardar un momento. Después es rápido.', zh: '首次使用需要初始化 — 可能需要一点时间，之后就很快了。', ru: 'Настройка при первом запуске — это займёт немного времени. Дальше будет быстро.', kk: 'Алғаш қолданғанда баптау жүріп жатыр — біраз уақыт алуы мүмкін. Кейін жылдам болады.' },
+  'toast.saved': { en: 'Saved', es: 'Guardado', zh: '已保存', ru: 'Сохранено', kk: 'Сақталды' },
+  'toast.deleted': { en: 'Deleted', es: 'Eliminado', zh: '已删除', ru: 'Удалено', kk: 'Жойылды' },
+  'toast.merged': { en: 'Saved {w} to your account', es: 'Se guardaron {w} en tu cuenta', zh: '已将 {w} 保存到你的账户', ru: 'Сохранили {w} в ваш аккаунт', kk: '{w} аккаунтыңызға сақталды' },
+  'toast.hereCollection': { en: "Here's your collection ✨", es: 'Aquí está tu colección ✨', zh: '这是你的收藏 ✨', ru: 'Вот ваша коллекция ✨', kk: 'Міне жинағыңыз ✨' },
+  'toast.preparingImage': { en: 'Preparing image…', es: 'Preparando imagen…', zh: '正在准备图片…', ru: 'Готовим изображение…', kk: 'Суретті дайындап жатырмыз…' },
+  'toast.imageSaved': { en: 'Image saved', es: 'Imagen guardada', zh: '图片已保存', ru: 'Изображение сохранено', kk: 'Сурет сақталды' },
+  'toast.imageFail': { en: "Couldn't create the image", es: 'No se pudo crear la imagen', zh: '无法创建图片', ru: 'Не удалось создать изображение', kk: 'Сурет жасалмады' },
+  'toast.saveFail': { en: "Couldn't save the image", es: 'No se pudo guardar la imagen', zh: '无法保存图片', ru: 'Не удалось сохранить изображение', kk: 'Сурет сақталмады' },
+  'toast.photoFail': { en: "Couldn't read that photo — try again", es: 'No se pudo leer esa foto — inténtalo de nuevo', zh: '无法读取该照片 — 请重试', ru: 'Не удалось прочитать это фото — попробуйте ещё раз', kk: 'Ол фото оқылмады — қайталап көріңіз' },
+  'toast.savedSyncIssue': { en: 'Saved on this device — syncing had an issue', es: 'Guardado en este dispositivo — hubo un problema al sincronizar', zh: '已保存到本设备 — 同步时出现问题', ru: 'Сохранено на этом устройстве — при синхронизации возникла проблема', kk: 'Осы құрылғыда сақталды — синхрондау кезінде мәселе болды' },
+  'toast.subManage': { en: 'Subscription management is being set up — you can also cancel from the email Polar sent.', es: 'La gestión de suscripciones se está configurando; también puedes cancelar desde el correo que envió Polar.', zh: '订阅管理功能正在设置中 — 你也可以通过 Polar 发送的邮件取消。', ru: 'Управление подпиской ещё настраивается — вы также можете отменить её через письмо от Polar.', kk: 'Жазылымды басқару бапталып жатыр — оны Polar жіберген хат арқылы да тоқтата аласыз.' },
+};
+function uiLang(){ return ['en','es','zh','ru','kk'].includes(state.spoken) ? state.spoken : 'en'; }
+function t(key, vars){
+  const e = I18N[key];
+  let s = e ? (e[uiLang()] || e.en || key) : key;
+  if(vars){ for(const k in vars){ s = s.split('{' + k + '}').join(vars[k]); } }
+  return s;
+}
+// "N words" with correct plural forms (Russian has three; kk/zh don't inflect).
+function ruPlural(n, one, few, many){ const a = n%10, b = n%100; if(a===1 && b!==11) return one; if(a>=2 && a<=4 && !(b>=12 && b<=14)) return few; return many; }
+function nWords(n){
+  switch(uiLang()){
+    case 'es': return n + (n===1 ? ' palabra' : ' palabras');
+    case 'zh': return n + ' 个单词';
+    case 'ru': return n + ' ' + ruPlural(n, 'слово', 'слова', 'слов');
+    case 'kk': return n + ' сөз';
+    default:   return n + (n===1 ? ' word' : ' words');
+  }
+}
+function tFreeLeft(n){
+  switch(uiLang()){
+    case 'es': return n + (n===1 ? ' palabra gratis' : ' palabras gratis');
+    case 'zh': return '还剩 ' + n + ' 个免费单词';
+    case 'ru': return 'Осталось ' + n + ' ' + ruPlural(n, 'бесплатное слово', 'бесплатных слова', 'бесплатных слов');
+    case 'kk': return n + ' тегін сөз қалды';
+    default:   return n + ' free ' + (n===1 ? 'word' : 'words') + ' left';
+  }
+}
+// "N words in <language>" (neutral separator for langs where the preposition is awkward).
+function tCountIn(n, langNative){
+  const w = nWords(n);
+  switch(uiLang()){
+    case 'es': return w + ' en ' + langNative;
+    case 'en': return w + ' in ' + langNative;
+    default:   return w + ' · ' + langNative;
+  }
+}
+
+function sceneBg(objKey){
+  const o = OBJECTS[objKey]; if(!o) return '#c9ccc6';
+  return `radial-gradient(130% 100% at 28% 18%, ${o.a} 0%, transparent 58%), radial-gradient(120% 110% at 82% 84%, ${o.b} 0%, transparent 60%), linear-gradient(165deg,#cbcfc6,#b6bbb0)`;
+}
+function stickerStyle(objKey, size){
+  const o = OBJECTS[objKey]; const px = size+'px';
+  return css({ width:px, height:px, borderRadius:o.r, border:'4px solid rgba(255,255,255,0.92)',
+    background:`radial-gradient(125% 125% at 30% 24%, ${o.a} 0%, ${o.b} 100%)`,
+    boxShadow:'0 18px 40px -12px rgba(35,45,40,.42)',
+    display:'flex', alignItems:'flex-end', justifyContent:'center', position:'relative', flexShrink:'0' });
+}
+function labelStyle(small){
+  return css({ fontFamily:"'Hanken Grotesk',sans-serif", fontSize:(small?10:11.5)+'px',
+    fontWeight:'600', letterSpacing:'.2px', color:'#33403a',
+    background:'rgba(255,255,255,.85)', padding:small?'2px 9px':'3px 11px', borderRadius:'20px',
+    marginBottom:small?'8px':'11px', boxShadow:'0 3px 8px rgba(0,0,0,.1)' });
+}
+// A floating frame that shows the user's real captured photo.
+function photoFrame(photo, w, h){
+  return css({ width:w+'px', height:(h||w)+'px', borderRadius:(w<120?'18px':'26px'),
+    border:(w<120?'4px':'5px')+' solid rgba(255,255,255,0.94)',
+    background:`#cdd2cb url('${photo}') center/cover`,
+    boxShadow:'0 18px 42px -12px rgba(35,45,40,.5)', flexShrink:'0' });
+}
+// The photo with a glowing line tracing around its border — shown WHILE the
+// object is being cut out, so the user sees it's working.
+function scanningFrame(photo, w, h){
+  return `<div style="position:relative;width:${w}px;height:${h}px;border-radius:28px;overflow:hidden;box-shadow:0 18px 42px -12px rgba(35,45,40,.5);flex-shrink:0">
+    <div style="position:absolute;width:200%;height:200%;left:-50%;top:-50%;background:conic-gradient(from 0deg, transparent 0deg, transparent 248deg, rgba(255,255,255,.55) 300deg, #ffffff 322deg, rgba(255,255,255,.35) 344deg, transparent 360deg);animation:lumiSpin 1.15s linear infinite"></div>
+    <div style="position:absolute;inset:4px;border-radius:24px;background:#cdd2cb url('${photo}') center/cover"></div>
+    <div style="position:absolute;inset:4px;border-radius:24px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.45)"></div>
+  </div>`;
+}
+// Read a photo file, shrink it (so it loads fast + fits device storage), return a data URL.
+function compressImage(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if(w >= h && w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; }
+      else if(h > w && h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      try { resolve(canvas.toDataURL('image/jpeg', quality)); }
+      catch(e){ reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read image')); };
+    img.src = url;
+  });
+}
+// Resize a data URL, KEEPING transparency (PNG). Used to shrink the cut-out before storing.
+function resizeDataUrl(dataUrl, maxDim, mime){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if(w >= h && w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; }
+      else if(h > w && h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL(mime || 'image/png'));
+    };
+    img.onerror = () => reject(new Error('Could not resize image'));
+    img.src = dataUrl;
+  });
+}
+// Crop the transparent margins off a cut-out PNG so the object FILLS the frame
+// (a cut-out floats small inside a big transparent canvas otherwise). Resolves to
+// { url, frac } where frac = share of pixels that are opaque (0 = fully empty
+// cut-out). On any problem returns the original with frac:1 (keep it).
+function trimTransparent(dataUrl, padFrac){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const w = img.naturalWidth, h = img.naturalHeight;
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, w, h).data;
+        let minX = w, minY = h, maxX = -1, maxY = -1, opaque = 0;
+        const A = 12;   // alpha threshold
+        for(let y = 0; y < h; y++){
+          for(let x = 0; x < w; x++){
+            if(data[(y*w + x)*4 + 3] > A){
+              opaque++;
+              if(x < minX) minX = x; if(x > maxX) maxX = x;
+              if(y < minY) minY = y; if(y > maxY) maxY = y;
+            }
+          }
+        }
+        const frac = opaque / (w * h);
+        if(maxX < minX || maxY < minY){ resolve({ url: dataUrl, frac: 0 }); return; }   // nothing opaque
+        const pad = Math.round(Math.max(maxX - minX, maxY - minY) * (padFrac == null ? 0.06 : padFrac));
+        minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+        maxX = Math.min(w - 1, maxX + pad); maxY = Math.min(h - 1, maxY + pad);
+        const cw = maxX - minX + 1, ch = maxY - minY + 1;
+        const out = document.createElement('canvas'); out.width = cw; out.height = ch;
+        out.getContext('2d').drawImage(cv, minX, minY, cw, ch, 0, 0, cw, ch);
+        resolve({ url: out.toDataURL('image/png'), frac });
+      } catch(e){ resolve({ url: dataUrl, frac: 1 }); }
+    };
+    img.onerror = () => resolve({ url: dataUrl, frac: 1 });
+    img.src = dataUrl;
+  });
+}
+// Prepare a server cut-out for display in ONE fast pass: cap the working resolution,
+// find the opaque bounding box, then crop + resize in a single draw/encode. Returns
+// a small PNG data URL, or null when the cut-out is (near-)empty (caller shows the
+// photo instead). Much faster than trim-then-resize (which decoded + PNG-encoded twice).
+function processCutout(dataUrl, maxOut){
+  maxOut = maxOut || 512;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        // Cap analysis resolution so the pixel scan + encode stay quick on phones.
+        const nat = Math.max(img.naturalWidth, img.naturalHeight) || 1;
+        const s = Math.min(1, 1024 / nat);
+        const w = Math.max(1, Math.round(img.naturalWidth * s)), h = Math.max(1, Math.round(img.naturalHeight * s));
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+        const data = ctx.getImageData(0, 0, w, h).data;
+        let minX = w, minY = h, maxX = -1, maxY = -1, opaque = 0;
+        const A = 12;
+        for(let y = 0; y < h; y++){
+          for(let x = 0; x < w; x++){
+            if(data[(y*w + x)*4 + 3] > A){
+              opaque++;
+              if(x < minX) minX = x; if(x > maxX) maxX = x;
+              if(y < minY) minY = y; if(y > maxY) maxY = y;
+            }
+          }
+        }
+        const frac = opaque / (w * h);                                   // share of the whole image
+        const bbox = (maxX - minX + 1) * (maxY - minY + 1);
+        const fill = maxX < minX ? 0 : opaque / bbox;                    // how solidly the object fills its own box
+        // Reject empty cut-outs AND sparse/fragmented ones (e.g. a segmenter that
+        // grabbed only a shiny edge/handle of a big appliance) → show the photo instead.
+        if(maxX < minX || frac < 0.012 || fill < 0.14){ resolve(null); return; }
+        const pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.06);
+        minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+        maxX = Math.min(w - 1, maxX + pad); maxY = Math.min(h - 1, maxY + pad);
+        const cw = maxX - minX + 1, ch = maxY - minY + 1;
+        const os = Math.min(1, maxOut / Math.max(cw, ch));
+        const ow = Math.max(1, Math.round(cw * os)), oh = Math.max(1, Math.round(ch * os));
+        const out = document.createElement('canvas'); out.width = ow; out.height = oh;
+        out.getContext('2d').drawImage(cv, minX, minY, cw, ch, 0, 0, ow, oh);   // crop + resize in one draw
+        resolve(out.toDataURL('image/png'));   // one encode
+      } catch(e){ resolve(dataUrl); }   // can't analyze → keep the original cut-out
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+// Background-removal engine (in-browser AI). Loaded once, on first use.
+let _bgModule = null;
+async function removeBg(dataUrl){
+  if(!_bgModule) _bgModule = await import('https://esm.sh/@imgly/background-removal@1.5.8');
+  const blob = await _bgModule.removeBackground(dataUrl);
+  const cut = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(new Error('Could not read cut-out'));
+    r.readAsDataURL(blob);
+  });
+  const trimmed = await trimTransparent(cut);   // fill the frame, not float small
+  return resizeDataUrl(trimmed.url, 480, 'image/png');   // shrink so it stores compactly
+}
+function timeoutReject(ms){ return new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)); }
+// Render a transparent cut-out as a floating "sticker" with a white edge + soft shadow.
+function cutoutImg(src, maxW, maxH, edge){
+  const e = edge || 2, d = (e*0.72).toFixed(1);
+  const filter = [
+    `drop-shadow(${e}px 0 0 #fff)`, `drop-shadow(-${e}px 0 0 #fff)`,
+    `drop-shadow(0 ${e}px 0 #fff)`, `drop-shadow(0 -${e}px 0 #fff)`,
+    `drop-shadow(${d}px ${d}px 0 #fff)`, `drop-shadow(-${d}px ${d}px 0 #fff)`,
+    `drop-shadow(${d}px -${d}px 0 #fff)`, `drop-shadow(-${d}px -${d}px 0 #fff)`,
+    `drop-shadow(0 16px 22px rgba(35,45,40,.5))`
+  ].join(' ');
+  return `<img src="${src}" alt="" style="display:block;max-width:${maxW}px;max-height:${maxH}px;width:auto;height:auto;object-fit:contain;filter:${filter}">`;
+}
+
+/* ---- 7. Actions (things that change the state, then re-draw) ----------- */
+function go(screen){ state.screen = screen; render(); }
+
+function pickObject(){
+  // pick an object the current language hasn't collected yet (fall back to any)
+  const used = new Set((state.journals[state.learning]||[]).map(c => c.objKey));
+  let pool = Object.keys(OBJECTS).filter(k => !used.has(k));
+  if(!pool.length) pool = Object.keys(OBJECTS);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+// Camera. On laptops the file "capture" hint is ignored (it just opens a file
+// chooser), so we open a real in-app camera via getUserMedia; this works on
+// phones too. Falls back to the file input when a camera isn't available.
+let _camStream = null;
+function openCamera(){
+  // Touch devices (phones/tablets): the file "capture" hint opens the native
+  // camera app, which is the nicer experience there — keep it.
+  const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  if(coarse){ openCameraFallback(); return; }
+  // Laptops/desktops: "capture" only opens a file chooser, so use the webcam.
+  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.isSecureContext){
+    startLiveCamera();
+  } else {
+    openCameraFallback();   // old browser or insecure (plain-http) → file input
+  }
+}
+async function startLiveCamera(){
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+  } catch(e){
+    if(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')){
+      showToast('Camera access was blocked — you can upload a photo instead.', false);
+      return;                 // don't bounce to a file chooser after an explicit deny
+    }
+    openCameraFallback();     // no camera found / unsupported → fall back
+    return;
+  }
+  _camStream = stream;
+  buildCameraOverlay(stream);
+}
+function stopCamera(){
+  if(_camStream){ try { _camStream.getTracks().forEach(t => t.stop()); } catch(_){} _camStream = null; }
+  const ov = document.getElementById('camOverlay'); if(ov) ov.remove();
+  document.removeEventListener('keydown', _camKey);
+}
+function _camKey(e){ if(e.key === 'Escape') stopCamera(); }
+function buildCameraOverlay(stream){
+  const stale = document.getElementById('camOverlay'); if(stale) stale.remove();   // drop a leftover overlay, keep the fresh stream
+  const ov = document.createElement('div');
+  ov.id = 'camOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#000;overflow:hidden';
+  const video = document.createElement('video');
+  video.autoplay = true; video.muted = true; video.playsInline = true;
+  video.setAttribute('playsinline',''); video.setAttribute('webkit-playsinline','');
+  video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover';
+  video.srcObject = stream;
+  video.play().catch(()=>{});
+  const close = document.createElement('button');
+  close.innerHTML = '&#10005;'; close.setAttribute('aria-label','Close camera');
+  close.style.cssText = 'position:absolute;top:calc(env(safe-area-inset-top) + 16px);left:16px;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.42);color:#fff;font-size:18px;border:1px solid rgba(255,255,255,.32);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;cursor:pointer';
+  close.addEventListener('click', stopCamera);
+  const hint = document.createElement('div');
+  hint.textContent = 'Point at an object, then tap the button';
+  hint.style.cssText = 'position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 122px);text-align:center;color:rgba(255,255,255,.92);font-size:13px;font-weight:500;text-shadow:0 1px 4px rgba(0,0,0,.6);pointer-events:none';
+  const shutter = document.createElement('button');
+  shutter.setAttribute('aria-label','Take photo');
+  shutter.style.cssText = 'position:absolute;bottom:calc(env(safe-area-inset-bottom) + 34px);left:50%;transform:translateX(-50%);width:74px;height:74px;border-radius:50%;background:#fff;border:none;box-shadow:0 0 0 4px rgba(255,255,255,.35),0 0 0 6px rgba(0,0,0,.22);cursor:pointer';
+  shutter.addEventListener('click', () => capturePhoto(video));
+  ov.appendChild(video); ov.appendChild(close); ov.appendChild(hint); ov.appendChild(shutter);
+  document.body.appendChild(ov);
+  document.addEventListener('keydown', _camKey);
+}
+function capturePhoto(video){
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if(!vw || !vh) return;    // stream not ready yet — ignore the tap
+  const max = 1024, scale = Math.min(1, max / Math.max(vw, vh));
+  const cw = Math.round(vw * scale), ch = Math.round(vh * scale);
+  const canvas = document.createElement('canvas'); canvas.width = cw; canvas.height = ch;
+  canvas.getContext('2d').drawImage(video, 0, 0, cw, ch);
+  let dataUrl; try { dataUrl = canvas.toDataURL('image/jpeg', 0.85); } catch(_){ stopCamera(); return; }
+  stopCamera();
+  startCapture(dataUrl);
+}
+// Fallback camera: the file input (phones open the native camera via "capture").
+function openCameraFallback(){
+  const input = document.getElementById('fileInput');
+  input.value = '';
+  input.setAttribute('capture', 'environment');
+  input.click();
+}
+// Open the photo library / file picker (for "upload a photo").
+function openFilePicker(){
+  const input = document.getElementById('fileInput');
+  input.value = '';
+  input.removeAttribute('capture');              // no camera hint → pick an existing photo
+  input.click();
+}
+// Called once a real photo has been chosen/compressed. Shows a short "processing"
+// moment, then the result. (Automatic background-removal was removed — it was
+// unreliable; a better AI-based cut-out will come with the naming stage.)
+async function startCapture(photo){
+  clearTimers();
+  state.current = { photo, learning: state.learning, spoken: state.spoken,
+    found: null, word: '', reading: '', meaning: '', example: '', exampleTr: '', confidence: '', error: null, cutout: null };
+  state.saved = false;
+  state.screen = 'processing';
+  state.procPhase = 0;
+  render();
+  timers.push(setTimeout(() => { if(isCurrent(photo)){ state.procPhase = 1; render(); } }, 1050));
+
+  // Cut the object out of its background, in parallel with naming.
+  const cutoutPromise = fetchCutout(photo).catch(() => null);
+  // If it finishes after the result is already on screen, attach it then.
+  cutoutPromise.then(cut => {
+    if(cut && isCurrent(photo) && !state.current.cutout){ state.current.cutout = cut; triggerReveal(); render(); }
+  });
+
+  const callName = async () => {
+    try {
+      const r = await fetch('/api/name', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: photo, spoken: state.spoken, learning: state.learning, provider: AITEST.provider, direct: AITEST.direct })
+      });
+      if(!r.ok) return { found: false, _net: true };
+      return await r.json();
+    } catch(e){ return { found: false, _net: true }; }
+  };
+  let data = await callName();
+  // A clear object occasionally reads as "not found" on a hard or odd-angle shot —
+  // naming is probabilistic, so retry ONCE before giving up (a second pass usually lands).
+  if(isCurrent(photo) && data && !data.found && !data._net){
+    data = await callName();
+  }
+  if(!isCurrent(photo)) return;            // user retook / left — drop stale result
+  if(data && data.found && data.word){
+    state.current.found = true;
+    state.current.word = data.word;
+    state.current.meaning = data.meaning || '';
+    state.current.example = data.example || '';
+    state.current.exampleTr = data.exampleTr || '';
+    state.current.reading = data.reading || '';
+    state.current.confidence = data.confidence || '';
+  } else {
+    state.current.found = false;
+    state.current.error = data && data._net ? 'network' : (data && data.error ? 'server' : 'notfound');
+  }
+  // Wait only a SHORT grace window for the cut-out: if it's nearly ready we show it
+  // straight away (no swap); if it's slow we show the result now (with the photo) and
+  // the cut-out reveals itself in-place when it arrives — so the user never waits on a
+  // loading screen for several seconds. (The cutoutPromise.then handler above does the
+  // in-place upgrade + reveal.)
+  if(isCurrent(photo)){
+    const cut = await Promise.race([ cutoutPromise, new Promise(r => setTimeout(() => r(null), 1200)) ]);
+    if(cut && isCurrent(photo)){ state.current.cutout = cut; triggerReveal(); }
+  }
+  if(isCurrent(photo)){ state.screen = 'result'; render(); }
+}
+// True if the photo being processed is still the active one.
+function isCurrent(photo){ return state.current && state.current.photo === photo; }
+// Play the cut-out reveal animation once, then clear the flag so later
+// re-renders (save, toast) don't replay it.
+function triggerReveal(){
+  state.reveal = true;
+  clearTimeout(timers._reveal);
+  timers._reveal = setTimeout(() => { state.reveal = false; }, 1000);
+}
+// Ask the server to cut the object out of its background; returns a transparent
+// PNG data URL (shrunk for storage), or null if it fails.
+async function fetchCutout(photo){
+  try {
+    const r = await fetch('/api/cutout', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: photo })
+    });
+    if(!r.ok) return null;
+    const data = await r.json();
+    if(!data || !data.cutout) return null;
+    // One fast pass: trims transparent margins + resizes + detects an empty cut-out
+    // (returns null → the app shows the photo). Replaces the old two-encode path.
+    return await processCutout(data.cutout, 512);
+  } catch(e){ return null; }
+}
+function showToast(msg, good){
+  state.toast = { msg, good: good !== false };
+  render();
+  clearTimeout(timers._toast);
+  timers._toast = setTimeout(() => { state.toast = null; render(); }, 2200);
+}
+// Pronounce a word/phrase via the server TTS. Caches audio per text so repeats
+// don't re-fetch (or re-charge).
+const _speakCache = {};
+let _audio = null;
+function playAudioUrl(url){
+  try { if(_audio){ _audio.pause(); } _audio = new Audio(url); _audio.play().catch(() => {}); } catch(e){}
+}
+// Pronounce a word. Prefers the natural ElevenLabs voice; the device voice is the
+// fallback. On touch devices, mobile browsers block audio started after an async wait,
+// so there we must speak instantly with the device voice in the tap and cache the
+// natural voice for the next tap. On desktop we can play ElevenLabs on the first tap.
+function speak(text, lang){
+  text = (text || '').trim();
+  if(!text) return;
+  const ckey = (lang || '') + '|' + text;
+  if(_speakCache[ckey]){ playAudioUrl(_speakCache[ckey]); return; }   // warm cache → play the real voice now
+  // Cold tap: create + "unlock" an Audio element inside this tap so iOS will let it
+  // play once the file arrives, then fill in the src when the fetch resolves. We only
+  // ever play the correct server (Azure) pronunciation — never the phone's built-in
+  // voice, which could mispronounce the word into gibberish.
+  let a = null;
+  try { if(_audio){ _audio.pause(); } a = new Audio(); _audio = a; a.play().catch(() => {}); } catch(e){}
+  fetchTTS(text, lang).then(url => {
+    if(!url) return;
+    _speakCache[ckey] = url;
+    try { if(a){ a.src = url; a.play().catch(() => {}); } else { playAudioUrl(url); } } catch(e){}
+  });
+}
+async function fetchTTS(text, lang){
+  try {
+    const r = await fetch('/api/speak', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, lang }) });
+    if(!r.ok) return null;
+    return URL.createObjectURL(await r.blob());
+  } catch(e){ return null; }
+}
+// Warm the audio cache in the background so the NEXT ♪ tap plays instantly (no
+// wait for the network). Used when a review/result card is shown. De-duped.
+const _ttsInflight = {};
+function prefetchTTS(text, lang){
+  text = (text || '').trim(); if(!text) return;
+  const ckey = (lang || '') + '|' + text;
+  if(_speakCache[ckey] || _ttsInflight[ckey]) return;
+  _ttsInflight[ckey] = true;
+  fetchTTS(text, lang).then(url => { if(url) _speakCache[ckey] = url; delete _ttsInflight[ckey]; }, () => { delete _ttsInflight[ckey]; });
+}
+function speakViaBrowser(text, lang){
+  try {
+    if(!('speechSynthesis' in window)) return false;
+    const synth = window.speechSynthesis;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = ({ en:'en-US', es:'es-ES', zh:'zh-CN', ru:'ru-RU', kk:'kk-KZ', it:'it-IT', tr:'tr-TR', fr:'fr-FR', de:'de-DE', pt:'pt-BR', ja:'ja-JP', ko:'ko-KR' })[lang] || lang || 'en-US';
+    const voices = synth.getVoices() || [];
+    const want = (u.lang || '').slice(0,2).toLowerCase();
+    const v = voices.find(x => x.lang && x.lang.toLowerCase().startsWith(want));
+    if(v){ u.voice = v; }
+    else if(voices.length && !voices.some(x => x.lang && x.lang.toLowerCase().startsWith(want))){ return false; }   // no voice for this language on this device
+    u.rate = 0.92;
+    synth.cancel();
+    synth.speak(u);
+    return true;
+  } catch(e){ return false; }
+}
+// Upload a card image (data URL) to Supabase Storage and return its public URL, or
+// null on any problem (offline / not signed in) so the caller falls back to base64.
+async function uploadCardImage(dataUrl){
+  if(!dataUrl || dataUrl.indexOf('data:') !== 0) return null;   // already a URL, or nothing to upload
+  try {
+    const supa = await window.lumiSupaReady;
+    const { data } = await supa.auth.getSession();
+    const token = data && data.session && data.session.access_token;
+    if(!token) return null;
+    const r = await fetch('/api/store-image', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ image: dataUrl }) });
+    if(!r.ok) return null;
+    const j = await r.json();
+    return (j && j.path) || null;
+  } catch(e){ return null; }
+}
+// Turn the card images we hold as storage PATHS into short-lived signed URLs we can
+// actually display (private bucket). Keeps images login-gated; cards that already have a
+// local base64 image are left as-is (they display straight away, offline).
+async function resolveCardImages(){
+  if(!state.user) return;
+  const need = {};
+  Object.keys(state.journals).forEach(code => (state.journals[code]||[]).forEach(c => {
+    if(c && c.imagePath && (!c.image || String(c.image).indexOf('data:') !== 0)){
+      (need[c.imagePath] = need[c.imagePath] || []).push(c);
+    }
+  }));
+  const paths = Object.keys(need);
+  if(!paths.length) return;
+  try {
+    const supa = await window.lumiSupaReady;
+    const { data } = await supa.auth.getSession();
+    const token = data && data.session && data.session.access_token;
+    if(!token) return;
+    let changed = false;
+    for(let i = 0; i < paths.length; i += 100){
+      const chunk = paths.slice(i, i + 100);
+      const r = await fetch('/api/sign-images', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ paths: chunk }) });
+      if(!r.ok) continue;
+      const signed = ((await r.json()) || {}).signed || {};
+      chunk.forEach(p => { const url = signed[p]; if(url){ (need[p]||[]).forEach(c => c.image = url); changed = true; } });
+    }
+    if(changed){ render(); idbSet(JOURNALS_KEY, state.journals).catch(()=>{}); }
+  } catch(e){ /* offline / not signed in — cards with a local copy still show */ }
+}
+async function save(){
+  if(state.saved || !state.current || !state.current.found) return;
+  state.reveal = false;   // don't replay the reveal animation on save's re-render
+  const cur = state.current;
+  const card = { id:'c'+Date.now(), learning:cur.learning, word:cur.word, reading:cur.reading||'', meaning:cur.meaning, example:cur.example, exampleTr:cur.exampleTr||'', image:cur.cutout||cur.photo||null, cut:!!cur.cutout, createdAt:Date.now() };
+  state.journals[cur.learning] = [card, ...(state.journals[cur.learning]||[])];
+  state.captureCount = (state.captureCount || 0) + 1; saveCaptureCount();   // free meter ticks up
+  state.saved = true;
+  render();
+  // First-ever save: reveal the collection once, so new users discover it exists.
+  try {
+    if(!localStorage.getItem('lumi.seenJournal')){
+      localStorage.setItem('lumi.seenJournal', '1');
+      const savedLang = cur.learning;
+      setTimeout(() => {
+        if(state.screen === 'result'){ state.journalMode = 'cards'; state.learning = savedLang; go('journal'); showToast(t('toast.hereCollection'), true); }
+      }, 1100);
+    }
+  } catch(e){}
+  let ok = true;
+  if(state.user){
+    try {
+      const supa = await window.lumiSupaReady;
+      // Store the image as a tiny Storage PATH rather than base64 (huge). Keep the local
+      // card.image as the data URL so it still shows instantly + offline on this device.
+      const path = await uploadCardImage(card.image);
+      if(path) card.imagePath = path;
+      const base = { learning:card.learning, word:card.word, meaning:card.meaning, example:card.example, cut:card.cut, image: path || card.image };
+      let ins = await supa.from('cards').insert({ ...base, example_tr: card.exampleTr || null, reading: card.reading || null }).select('id').single();
+      if(ins.error && /reading/i.test(ins.error.message || '')){
+        ins = await supa.from('cards').insert({ ...base, example_tr: card.exampleTr || null }).select('id').single();   // no reading column yet
+      }
+      if(ins.error && /example_tr/i.test(ins.error.message || '')){
+        ins = await supa.from('cards').insert(base).select('id').single();   // neither optional column yet
+      }
+      if(ins.error) throw ins.error;
+      if(ins.data && ins.data.id) card.id = ins.data.id;   // adopt the real cloud id
+    } catch(e){ console.warn('cloud save failed:', e); ok = false; }
+  }
+  saveStore();   // also cache locally (offline copy)
+  showToast(ok ? (t('toast.saved') + ' · ' + cur.word) : t('toast.savedSyncIssue'), ok);
+}
+let _lpAt = 0;   // when the last long-press fired — used to swallow the click that follows
+function toggleFlip(id){
+  if(Date.now() - _lpAt < 700){ _lpAt = 0; return; }   // a long-press just opened the menu — don't also flip
+  state.flipped[id] = !state.flipped[id];
+  render();
+}
+function openCardActions(id){ state.sheetTarget = id; state.cardDeleteConfirm = false; state.sheet = 'cardactions'; render(); }
+async function deleteCard(id){
+  Object.keys(state.journals).forEach(code => { state.journals[code] = (state.journals[code]||[]).filter(c => String(c.id) !== String(id)); });
+  delete state.flipped[id];
+  state.sheet = null; state.cardDeleteConfirm = false;
+  render();
+  saveStore();
+  if(state.user){
+    try { const supa = await window.lumiSupaReady; await supa.from('cards').delete().eq('id', id); }
+    catch(e){ console.warn('cloud delete failed:', e); }
+  }
+  showToast(t('toast.deleted'), true);
+}
+function openSheet(t, target){ state.sheet = t; if(target) state.sheetTarget = target; render(); }
+function closeSheet(){ state.sheet = null; render(); }
+// ---- Edit a saved card (fix a wrong word / translation, e.g. Kazakh) ----
+function findCard(id){ let found = null; Object.keys(state.journals).forEach(code => { const c = (state.journals[code]||[]).find(x => String(x.id) === String(id)); if(c) found = c; }); return found; }
+function openEditCard(id){ const card = findCard(id); if(!card) return; state.editTarget = id; state.editDraft = { word: card.word||'', meaning: card.meaning||'', example: card.example||'' }; state.sheet = 'editcard'; render(); }
+function lumiEdit(k, v){ if(state.editDraft) state.editDraft[k] = v; }   // called inline by the input fields
+async function saveCardEdit(){
+  const id = state.editTarget, d = state.editDraft || {};
+  const card = findCard(id);
+  if(card){ card.word = (d.word||'').trim(); card.meaning = (d.meaning||'').trim(); card.example = (d.example||'').trim(); }
+  state.sheet = null;
+  render();
+  saveStore();
+  if(state.user && card){
+    try { const supa = await window.lumiSupaReady;
+      await supa.from('cards').update({ word:card.word, meaning:card.meaning, example:card.example }).eq('id', id);
+    } catch(e){ console.warn('cloud card update failed:', e); }
+  }
+  showToast('Card updated', true);
+}
+function pickLang(code){
+  const t = state.sheetTarget;
+  if(t === 'spoken'){
+    if(code === state.learning){ closeSheet(); return; }   // can't speak what you're learning
+    state.spoken = code;
+  } else {
+    if(code === state.spoken){ closeSheet(); return; }      // can't learn what you speak
+    state.learning = code; state.flipped = {};
+  }
+  state.sheet = null;
+  saveSettings();   // only the language changed — no need to re-write the whole collection (that was the lag)
+  syncProfile();
+  render();
+}
+function beginOnboarding(){
+  state.onboarded = true; markUserOnboarded(); state.screen = 'home'; saveStore(); syncProfile(); render();
+}
+
+/* ---- 7b. Accounts (Supabase auth) ------------------------------------- */
+// Check for an existing session on load, then react to sign in / sign out.
+async function initAuth(){
+  let supa;
+  try { supa = await window.lumiSupaReady; }
+  catch(e){ console.warn('Supabase not available:', e); state.authReady = true; state.screen = state.onboarded ? 'home' : 'onboarding'; render(); return; }
+  try {
+    const { data } = await supa.auth.getSession();
+    state.user = data && data.session ? data.session.user : null;
+  } catch(e){ state.user = null; }
+  state.authReady = true;
+  applyAuthScreen();
+  render();
+  if(state.user){ syncOnAuth(); refreshPremium(); pollPremiumAfterCheckout(); resumePendingPlan(); }   // returning session → pull cloud data + Pro status (+ catch a just-completed upgrade)
+  supa.auth.onAuthStateChange((event, session) => {
+    state.user = session ? session.user : null;
+    if(event === 'PASSWORD_RECOVERY'){ state.recovery = true; state.authMode = 'newpassword'; state.authError = ''; state.authNotice = ''; }
+    applyAuthScreen();
+    render();
+    if(event === 'SIGNED_IN' && !state.recovery){ syncOnAuth(); refreshPremium(); pollPremiumAfterCheckout(); resumePendingPlan(); }   // fresh sign-in → pull cloud data + Pro status
+    if(event === 'SIGNED_OUT'){ state.recovery = false; clearLocalCollection().then(render); }
+  });
+}
+// Pull the "is this account on Lumi Pro?" flag from Supabase. Safe to call even
+// before the column exists — it just leaves the local value untouched on error.
+// The Polar webhook (server-side) is what sets profiles.is_premium = true.
+async function refreshPremium(){
+  if(!state.user) return;
+  try {
+    const supa = await window.lumiSupaReady;
+    const { data, error } = await supa.from('profiles').select('is_premium').eq('id', state.user.id).single();
+    if(error) return;
+    if(data && typeof data.is_premium !== 'undefined'){
+      state.premium = !!data.is_premium;
+      try { localStorage.setItem(PREMIUM_KEY, state.premium ? '1' : '0'); } catch(e){}
+      render();
+    }
+  } catch(e){ /* column not added yet — ignore */ }
+}
+// Onboarding is tracked per-ACCOUNT (not per-device), so a brand-new user always
+// picks their languages first — even on a shared browser that's been used before.
+function userOnboarded(){
+  if(!state.user) return false;
+  try { return (JSON.parse(localStorage.getItem('lumi.onboardedUsers') || '[]')).includes(state.user.id); }
+  catch(e){ return false; }
+}
+function markUserOnboarded(){
+  if(!state.user) return;
+  try {
+    const l = JSON.parse(localStorage.getItem('lumi.onboardedUsers') || '[]');
+    if(!l.includes(state.user.id)){ l.push(state.user.id); localStorage.setItem('lumi.onboardedUsers', JSON.stringify(l)); }
+  } catch(e){}
+}
+// Decide which screen to show based on whether someone is signed in.
+// NO LOGIN WALL: visitors can use the app first (up to FREE_LIMIT captures) and are
+// only asked to sign in later — to SAVE their words and unlock Pro. So a logged-out
+// person lands on onboarding/home, never a forced auth screen.
+function applyAuthScreen(){
+  if(state.recovery){ state.screen = 'auth'; return; }   // stay on the set-new-password screen
+  if(state.screen === 'auth' || state.screen === 'loading'){
+    let done;
+    if(state.user){
+      done = userOnboarded() || state.onboarded;                    // account-level, or already picked languages locally
+      if(done && !userOnboarded()) markUserOnboarded();             // a just-signed-up visitor keeps their setup — no repeat onboarding
+    } else {
+      done = state.onboarded;
+    }
+    state.screen = done ? 'home' : 'onboarding';   // pick languages first, then capture
+  }
+}
+function setAuthMode(mode){ state.authMode = mode; state.authError = ''; state.authNotice = ''; render(); }
+// Read the form, then sign in or sign up.
+async function submitAuth(){
+  if(state.authBusy) return;
+  const mode = state.authMode || 'signin';
+  const emailEl = document.getElementById('authEmail');
+  const passEl = document.getElementById('authPass');
+  if(emailEl) state.authEmail = emailEl.value.trim();
+  if(passEl) state.authPass = passEl.value;
+  const redirectTo = location.origin + location.pathname;
+
+  // Forgot password → email a reset link.
+  if(mode === 'reset'){
+    if(!state.authEmail){ state.authError = 'Enter your email first.'; render(); return; }
+    state.authBusy = true; state.authError = ''; state.authNotice = ''; render();
+    try {
+      const supa = await window.lumiSupaReady;
+      const { error } = await supa.auth.resetPasswordForEmail(state.authEmail, { redirectTo });
+      state.authBusy = false;
+      if(error){ state.authError = error.message; }
+      else { state.authNotice = 'Check your email for a link to set a new password.'; }
+      render();
+    } catch(e){ state.authBusy = false; state.authError = t('auth.networkError'); render(); }
+    return;
+  }
+
+  // Set a new password (after arriving from the reset link).
+  if(mode === 'newpassword'){
+    if(!state.authPass || state.authPass.length < 6){ state.authError = 'Password must be at least 6 characters.'; render(); return; }
+    state.authBusy = true; state.authError = ''; render();
+    try {
+      const supa = await window.lumiSupaReady;
+      const { error } = await supa.auth.updateUser({ password: state.authPass });
+      state.authBusy = false;
+      if(error){ state.authError = error.message; render(); return; }
+      state.recovery = false; state.authMode = 'signin'; state.authPass = ''; state.authNotice = '';
+      applyAuthScreen(); render();   // now signed in with the new password → into the app
+    } catch(e){ state.authBusy = false; state.authError = t('auth.networkError'); render(); }
+    return;
+  }
+
+  // Sign in / sign up.
+  if(!state.authEmail || !state.authPass){ state.authError = 'Enter your email and password.'; render(); return; }
+  if(mode === 'signup' && state.authPass.length < 6){ state.authError = 'Password must be at least 6 characters.'; render(); return; }
+  state.authBusy = true; state.authError = ''; state.authNotice = ''; render();
+  try {
+    const supa = await window.lumiSupaReady;
+    if(mode === 'signup'){
+      const { data, error } = await supa.auth.signUp({ email: state.authEmail, password: state.authPass, options: { emailRedirectTo: redirectTo } });
+      if(error){ state.authError = error.message || t('auth.somethingWrong'); state.authBusy = false; render(); return; }
+      if(data && !data.session){
+        // email confirmation is on → they must click the verification link first
+        state.authBusy = false; state.authMode = 'signin'; state.authPass = '';
+        state.authNotice = t('auth.verifySent', { email: state.authEmail });
+        render(); return;
+      }
+    } else {
+      const { error } = await supa.auth.signInWithPassword({ email: state.authEmail, password: state.authPass });
+      if(error){ state.authError = error.message || t('auth.somethingWrong'); state.authBusy = false; render(); return; }
+    }
+    // success: onAuthStateChange switches screens. Clear the form.
+    state.authBusy = false; state.authEmail = ''; state.authPass = '';
+  } catch(e){
+    state.authBusy = false; state.authError = t('auth.networkError'); render();
+  }
+}
+async function signOut(){
+  state.sheet = null;
+  try { const supa = await window.lumiSupaReady; await supa.auth.signOut(); } catch(e){}
+  // onAuthStateChange handles the screen switch + clearing the local copy.
+}
+// One-tap Google sign-in (redirects to Google, then back to the app).
+async function googleSignIn(){
+  state.authError = ''; state.authNotice = ''; render();
+  try {
+    const supa = await window.lumiSupaReady;
+    const { error } = await supa.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+    if(error) throw error;
+  } catch(e){ state.authError = (e && e.message) || t('auth.googleFail'); render(); }
+}
+// Passwordless: email the person a one-time sign-in link.
+async function magicLink(){
+  const emailEl = document.getElementById('authEmail');
+  const email = emailEl ? emailEl.value.trim() : '';
+  state.authEmail = email;
+  if(!email){ state.authError = t('auth.enterEmailFirst'); render(); return; }
+  state.authBusy = true; state.authError = ''; state.authNotice = ''; render();
+  try {
+    const supa = await window.lumiSupaReady;
+    const { error } = await supa.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+    state.authBusy = false;
+    if(error){ state.authError = error.message; }
+    else { state.authNotice = t('auth.checkEmail'); }
+    render();
+  } catch(e){ state.authBusy = false; state.authError = t('auth.networkError'); render(); }
+}
+
+/* ---- 7c. Cloud sync (Supabase tables) --------------------------------- */
+function cardFromRow(r){
+  return { id:r.id, learning:r.learning, word:r.word, reading: r.reading || '', meaning:r.meaning, example:r.example, exampleTr: r.example_tr || '',
+    cut:!!r.cut, image:r.image, createdAt: r.created_at ? Date.parse(r.created_at) : Date.now() };
+}
+// Pull this user's settings + collection from the cloud (the source of truth).
+// Insert locally-created cards into the account, keeping example_tr/reading when those
+// columns exist and gracefully retrying without them on older schemas. Returns the new rows.
+async function insertLocalCards(supa, cards, META){
+  const full = cards.map(c => ({ learning:c.learning, word:c.word||'', meaning:c.meaning||'', example:c.example||'', cut:!!c.cut, image:c.image||null, example_tr:c.exampleTr||null, reading:c.reading||null }));
+  let { data, error } = await supa.from('cards').insert(full).select(META);
+  if(error && /reading/i.test(error.message||'')){ ({ data, error } = await supa.from('cards').insert(full.map(({ reading, ...r }) => r)).select(META)); }
+  if(error && /example_tr/i.test(error.message||'')){ ({ data, error } = await supa.from('cards').insert(full.map(({ reading, example_tr, ...r }) => r)).select(META)); }
+  if(error){ console.warn('merge insert failed:', error.message || error); return []; }
+  return data || [];
+}
+async function syncOnAuth(){
+  if(!state.user) return;
+  let supa; try { supa = await window.lumiSupaReady; } catch(e){ return; }
+  try {
+    const { data: prof } = await supa.from('profiles').select('spoken,learning,theme').eq('id', state.user.id).maybeSingle();
+    if(prof){
+      if(prof.spoken && canSpeak(prof.spoken)) state.spoken = prof.spoken;
+      if(prof.learning) state.learning = prof.learning;
+      if(prof.theme) state.theme = prof.theme;
+      saveSettings();
+    }
+    // EGRESS-SAVER: pull card TEXT only (no big base64 image blobs) and reuse images we
+    // already have on this device. A card's image never changes after it's created, so we
+    // download each image only ONCE per device instead of re-downloading the whole
+    // collection on every load — this is the main thing that was eating Supabase bandwidth.
+    const localImg = {};    // id -> base64 data URL we can display directly (offline-friendly)
+    const localPath = {};   // id -> private storage path (re-signed to a short-lived URL each load)
+    Object.keys(state.journals).forEach(code => (state.journals[code]||[]).forEach(c => {
+      if(!c) return;
+      if(c.image && String(c.image).indexOf('data:') === 0) localImg[String(c.id)] = c.image;
+      if(c.imagePath) localPath[String(c.id)] = c.imagePath;
+    }));
+
+    const META = 'id,learning,word,reading,meaning,example,example_tr,cut,created_at';
+    let { data: rows } = await supa.from('cards').select(META).eq('user_id', state.user.id).order('created_at', { ascending:false });
+    rows = rows || [];
+    // Save words captured BEFORE signing in: push locally-created cards (local "c…" ids)
+    // that the cloud doesn't already have, so a visitor's trial words land in their new
+    // account. Dedup by learning|word so re-syncing never duplicates. Covers both a brand-new
+    // empty account and signing into an existing one.
+    const cloudKey = new Set(rows.map(r => r.learning + '|' + (r.word || '').trim().toLowerCase()));
+    const localOnly = [];
+    Object.keys(state.journals).forEach(code => (state.journals[code] || []).forEach(c => {
+      if(!c || !/^c\d/.test(String(c.id))) return;                 // only unsynced, locally-created cards
+      const k = c.learning + '|' + (c.word || '').trim().toLowerCase();
+      if(cloudKey.has(k)) return;
+      cloudKey.add(k); localOnly.push(c);
+    }));
+    if(localOnly.length){
+      const ins = await insertLocalCards(supa, localOnly, META);   // preserves example_tr/reading, with column fallbacks
+      if(ins.length){ rows = ins.concat(rows); state._justMerged = localOnly.length; }
+    }
+
+    // Fetch the image REFERENCE (a tiny path, or legacy base64) only for cards we know nothing about locally.
+    const fetched = {};
+    const missing = rows.filter(r => !localImg[String(r.id)] && !localPath[String(r.id)]).map(r => r.id);
+    for(let i = 0; i < missing.length; i += 200){
+      const { data: imgs } = await supa.from('cards').select('id,image').in('id', missing.slice(i, i + 200));
+      (imgs||[]).forEach(r => { if(r.image) fetched[String(r.id)] = r.image; });
+    }
+
+    const journals = {}; LANGS.forEach(l => journals[l.code] = []);
+    rows.forEach(r => {
+      const id = String(r.id);
+      const card = cardFromRow(r);
+      if(localImg[id]){ card.image = localImg[id]; card.imagePath = localPath[id] || card.imagePath; }   // reuse local base64
+      else if(localPath[id]){ card.imagePath = localPath[id]; card.image = ''; }                          // known path → signed below
+      else {
+        const ref = fetched[id];
+        if(ref && String(ref).indexOf('data:') === 0){ card.image = ref; }                                // legacy base64 in the DB
+        else if(ref && String(ref).indexOf('http') === 0){ card.image = ref; }                            // legacy public URL
+        else if(ref){ card.imagePath = ref; card.image = ''; }                                             // private storage path → signed below
+        else { card.image = null; }
+      }
+      (journals[r.learning] = journals[r.learning] || []).push(card);
+    });
+    LANGS.forEach(l => journals[l.code].sort((a,b) => b.createdAt - a.createdAt));
+    state.journals = journals;
+    idbSet(JOURNALS_KEY, state.journals).catch(()=>{});   // keep a local cache
+    render();
+    if(state._justMerged){ showToast(t('toast.merged', { w: nWords(state._justMerged) }), true); state._justMerged = 0; }
+    resolveCardImages();                                  // sign private-path images so they display
+    setTimeout(() => migrateImagesToStorage(), 4000);     // one-time: move old base64/public images into the private bucket
+  } catch(e){ console.warn('Sync failed (using local copy):', e); }
+}
+// One-time migration: for each card that still holds its image LOCALLY as base64 (the
+// device that created it always does), upload that base64 into the private bucket and
+// replace the DB row's image with the tiny path. Works off the local copy, so it never
+// re-downloads the base64 it's replacing. Fully safe: the row is only changed AFTER a
+// successful upload (no image can be lost), and each card is migrated once (tracked).
+let _migrating = false;
+async function migrateImagesToStorage(){
+  if(_migrating || !state.user) return;
+  _migrating = true;
+  try {
+    let done;
+    try { done = new Set(JSON.parse(localStorage.getItem('lumi.imgMigrated') || '[]')); } catch(e){ done = new Set(); }
+    const supa = await window.lumiSupaReady;
+    const todo = [];
+    Object.keys(state.journals).forEach(code => (state.journals[code]||[]).forEach(c => {
+      if(c && !c.imagePath && c.image && String(c.image).indexOf('data:') === 0 && !done.has(String(c.id))) todo.push(c);
+    }));
+    for(const c of todo){
+      const path = await uploadCardImage(c.image);              // uploads the local base64, returns a path
+      if(path){
+        await supa.from('cards').update({ image: path }).eq('id', c.id);
+        c.imagePath = path;                                     // keep c.image as the base64 for instant/offline display
+        done.add(String(c.id));
+        try { localStorage.setItem('lumi.imgMigrated', JSON.stringify([...done])); } catch(e){}
+      }
+      await new Promise(r => setTimeout(r, 150));               // gentle throttle
+    }
+    if(todo.length) saveStore();
+  } catch(e){ console.warn('image migration:', e); }
+  _migrating = false;
+}
+// Save settings to the cloud profile too.
+async function syncProfile(){
+  if(!state.user) return;
+  try {
+    const supa = await window.lumiSupaReady;
+    const base = { id: state.user.id, spoken: state.spoken, learning: state.learning, theme: state.theme, updated_at: new Date().toISOString() };
+    let r = await supa.from('profiles').upsert({ ...base, email: state.user.email || null });
+    if(r.error && /email/i.test(r.error.message || '')){ await supa.from('profiles').upsert(base); }  // email column not added yet
+  } catch(e){ console.warn('profile sync failed', e); }
+}
+// Wipe the on-device copy (called on sign-out so the next account starts clean).
+async function clearLocalCollection(){
+  state.journals = {}; LANGS.forEach(l => state.journals[l.code] = []);
+  try { await idbSet(JOURNALS_KEY, state.journals); } catch(e){}
+}
+
+/* ---- 8. Screen templates (return HTML strings) ------------------------- */
+function statusBar(){
+  return '';   // no fake phone status bar — the device shows its own clock/battery
+}
+
+function loadingView(){
+  return `<div style="position:absolute;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center">
+    <div style="width:38px;height:38px;border-radius:50%;border:3px solid var(--glass-brd);border-top-color:var(--ink);animation:lumiSpin 1s linear infinite"></div>
+  </div>`;
+}
+
+function authView(){
+  const mode = state.authMode || 'signin';
+  const signup = mode === 'signup', reset = mode === 'reset', newpass = mode === 'newpassword';
+  const title = newpass ? t('auth.newpassTitle') : reset ? t('auth.resetTitle') : signup ? t('auth.signupTitle') : t('auth.welcome');
+  const sub = newpass ? t('auth.newpassSub')
+    : reset ? t('auth.resetSub')
+    : signup ? t('auth.signupSub')
+    : t('auth.welcomeSub');
+  const cta = state.authBusy ? t('auth.wait') : newpass ? t('auth.updatePass') : reset ? t('auth.sendReset') : signup ? t('auth.createAccount') : t('auth.signin');
+  const err = state.authError
+    ? `<div style="font-size:13px;line-height:1.45;color:#9a3b2f;background:rgba(255,255,255,.6);border:1px solid var(--glass-brd);border-radius:14px;padding:10px 13px;margin-bottom:12px">${esc(state.authError)}</div>`
+    : '';
+  const notice = state.authNotice
+    ? `<div style="font-size:13px;line-height:1.45;color:#2c5a3a;background:rgba(255,255,255,.62);border:1px solid var(--glass-brd);border-radius:14px;padding:10px 13px;margin-bottom:12px">${esc(state.authNotice)}</div>`
+    : '';
+  const googleG = `<svg width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.89 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>`;
+  const inputCss = 'width:100%;height:50px;padding:0 16px;border-radius:16px;border:1px solid var(--glass-brd);background:rgba(255,255,255,.55);font-family:\'Hanken Grotesk\',sans-serif;font-size:15px;color:var(--ink);outline:none';
+  const emailField = !newpass ? `<input id="authEmail" type="email" inputmode="email" autocomplete="email" placeholder="${esc(t('auth.email'))}" value="${esc(state.authEmail)}" style="${inputCss};margin-bottom:${reset?'14px':'10px'}">` : '';
+  const passField = !reset ? `<input id="authPass" type="password" autocomplete="${signup||newpass ? 'new-password' : 'current-password'}" placeholder="${newpass ? esc(t('auth.newPassword')) : esc(t('auth.password'))}" value="${esc(state.authPass)}" style="${inputCss};margin-bottom:${mode==='signin'?'8px':'14px'}">` : '';
+  const forgot = mode === 'signin' ? `<div style="text-align:right;margin:0 2px 12px"><button data-action="authReset" style="font-size:13px;color:var(--ink-soft);font-weight:600">${esc(t('auth.forgot'))}</button></div>` : '';
+  const social = (!reset && !newpass) ? `<div style="display:flex;align-items:center;gap:10px;margin:16px 0 14px;color:var(--ink-soft);font-size:12px"><div style="flex:1;height:1px;background:var(--glass-brd)"></div>${esc(t('auth.or'))}<div style="flex:1;height:1px;background:var(--glass-brd)"></div></div>
+        <button data-action="googleSignIn" style="width:100%;height:50px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:16px;background:#fff;border:1px solid var(--glass-brd);color:#3c4043;font-size:15px;font-weight:600">${googleG} ${esc(t('auth.google'))}</button>` : '';
+  const bottom = newpass ? ''
+    : reset ? `<div style="text-align:center;margin-top:18px;font-size:14px"><button data-action="authSignin" style="color:var(--ink);font-weight:600">← ${esc(t('auth.backToSignin'))}</button></div>`
+    : `<div style="text-align:center;margin-top:18px;font-size:14px;color:var(--ink-soft)">${signup?esc(t('auth.haveAccount')):esc(t('auth.noAccount'))} <button data-action="toggleAuthMode" style="color:var(--ink);font-weight:600;border-bottom:1px solid var(--glass-brd);padding-bottom:1px">${signup?esc(t('auth.signin')):esc(t('auth.signup'))}</button></div>`;
+  return `<div style="position:absolute;inset:0;background:var(--bg);overflow-y:auto;display:flex;flex-direction:column">
+    <div style="position:absolute;left:-20%;right:-20%;top:56%;height:200px;background:var(--mtn);filter:blur(34px);border-radius:50%;transform:scaleX(1.4)"></div>
+    <div style="position:relative;padding:calc(env(safe-area-inset-top) + 30px) 26px 0;text-align:center">
+      <a href="/" aria-label="Go to the Lumi home page" style="display:inline-flex;align-items:center;gap:7px;font-family:'Fraunces',serif;font-size:24px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none"><img src="/assets/lumi-mark.png" alt="" style="width:26px;height:26px;object-fit:contain">Lumi</a>
+    </div>
+    <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 22px 30px;max-width:480px;width:100%;margin:0 auto">
+      <h1 style="font-family:'Fraunces','Noto Serif',serif;font-weight:500;font-size:34px;line-height:1.05;letter-spacing:-1px;color:var(--ink);margin-bottom:8px;text-wrap:balance">${esc(title)}</h1>
+      <p style="font-size:14.5px;line-height:1.5;color:var(--ink-soft);margin-bottom:22px;max-width:320px">${esc(sub)}</p>
+      <div style="padding:14px;border-radius:24px;background:var(--glass-strong);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-brd);box-shadow:0 20px 50px -20px rgba(30,40,40,.4)">
+        ${err}${notice}
+        ${emailField}${passField}${forgot}
+        <button data-action="submitAuth" ${state.authBusy?'disabled':''} style="width:100%;height:54px;border-radius:18px;background:var(--cta);color:var(--cta-ink);font-size:16px;font-weight:600;opacity:${state.authBusy?'.7':'1'}">${esc(cta)}</button>
+        ${social}
+      </div>
+      ${bottom}
+      ${(!newpass && !reset && !state.user) ? `<div style="text-align:center;margin-top:14px"><button data-action="authSkip" style="font-size:13.5px;color:var(--ink-soft);font-weight:600">${esc(t('up.maybeLater'))}</button></div>` : ''}
+    </div>
+  </div>`;
+}
+
+function onboardingView(){
+  // On wide (laptop) screens, gather everything into one centred column so the
+  // heading + language card stay together instead of flying to opposite edges.
+  const wide = window.innerWidth >= 720;
+  const card = `<div style="position:relative;width:calc(100% - 32px);max-width:460px;padding:10px;border-radius:28px;background:var(--glass-strong);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-brd);box-shadow:0 20px 50px -20px rgba(30,40,40,.4);${wide?'margin:30px auto 0':'margin:0 auto 26px'}">
+      <button data-action="editSpoken" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-radius:19px;text-align:left">
+        <span style="font-size:13px;font-weight:600;color:var(--ink-soft)">${esc(t('sheet.iSpeak'))}</span>
+        <span style="font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.spoken).native)} <span style="font-size:11px;opacity:.5">▾</span></span>
+      </button>
+      <div style="height:1px;background:var(--glass-brd);margin:0 8px"></div>
+      <button data-action="editLearning" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-radius:19px;text-align:left">
+        <span style="font-size:13px;font-weight:600;color:var(--ink-soft)">${esc(t('sheet.imLearning'))}</span>
+        <span style="font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.learning).native)} <span style="font-size:11px;opacity:.5">▾</span></span>
+      </button>
+      <button data-action="continue" style="width:100%;height:56px;margin-top:8px;border-radius:20px;background:var(--cta);color:var(--cta-ink);font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">${esc(t('ob.begin'))} <span style="font-size:17px">→</span></button>
+    </div>`;
+  return `<div style="position:absolute;inset:0;background:var(--bg);overflow:hidden;display:flex;flex-direction:column">
+    <div style="position:absolute;left:-20%;right:-20%;top:54%;height:200px;background:var(--mtn);filter:blur(34px);border-radius:50%;transform:scaleX(1.4)"></div>
+    <div style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 18px) 24px 0">
+      <a href="/" aria-label="Go to the Lumi home page" style="font-family:'Fraunces',serif;font-size:21px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none">Lumi</a>
+      <div style="display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:30px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-brd);font-size:12px;font-weight:600;color:var(--ink)"><span style="width:6px;height:6px;border-radius:50%;background:var(--ink);opacity:.5"></span>${esc(t('common.tagline'))}</div>
+    </div>
+    <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 26px;${wide?'align-items:center;text-align:center':''}">
+      <h1 style="font-family:'Fraunces','Noto Serif',serif;font-weight:500;font-size:48px;line-height:1.0;letter-spacing:-1.6px;color:var(--ink);margin-bottom:18px;text-wrap:balance">${uiLang()==='en' ? 'Learn the words<br>all <span style="font-style:italic;font-weight:500">around</span> you.' : esc(t('ob.heading'))}</h1>
+      <p style="font-size:15.5px;line-height:1.55;color:var(--ink-soft);max-width:320px;${wide?'margin-left:auto;margin-right:auto':''}">${esc(t('ob.sub'))}</p>
+      ${wide ? card : ''}
+    </div>
+    ${wide ? '' : card}
+  </div>`;
+}
+
+// The "unlock Lumi Pro" screen — shown when a free collector hits the limit,
+// or from the little meter on the home screen.
+function upgradeView(){
+  const count = state.captureCount || 0;
+  const gate = atFreeLimit();
+  const anon = !state.user;   // logged-out visitor → add a small, separate "sign in to save" line
+  const title = gate ? t('up.collectedTitle', { w: nWords(count) }) : t('up.unlockTitle');
+  const sub = gate ? t('up.gateSub') : t('up.freeSub', { w: nWords(FREE_LIMIT) });
+  const plan = (action, badgeTxt, name, price, per, note) => `
+    <button data-action="${action}" style="position:relative;width:100%;max-width:340px;text-align:left;background:var(--glass-strong);border:1.5px solid ${badgeTxt?'var(--ink)':'var(--glass-brd)'};border-radius:20px;padding:${badgeTxt?'22px':'18px'} 20px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:${badgeTxt?'0 24px 50px -22px rgba(20,30,25,.5)':'0 12px 30px -18px rgba(20,30,25,.4)'};display:flex;align-items:center;justify-content:space-between;gap:12px">
+      ${badgeTxt?`<span style="position:absolute;top:-11px;left:20px;background:var(--ink);color:var(--bg-solid);font-size:10.5px;font-weight:700;letter-spacing:.4px;padding:4px 11px;border-radius:14px">${badgeTxt}</span>`:''}
+      <div>
+        <div style="font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-soft)">${name}</div>
+        <div style="font-family:'Fraunces',serif;font-size:27px;font-weight:500;letter-spacing:-.8px;color:var(--ink);line-height:1.05;margin-top:2px">${price}<span style="font-family:inherit;font-size:14px;font-weight:600;color:var(--ink-soft)"> ${per}</span></div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-top:3px">${note}</div>
+      </div>
+      <span style="flex-shrink:0;color:var(--ink);opacity:.7"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </button>`;
+  return `<div style="position:absolute;inset:0;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column">
+    <div style="position:absolute;left:-20%;right:-20%;top:52%;height:220px;background:var(--mtn);filter:blur(38px);border-radius:50%;transform:scaleX(1.4)"></div>
+    <div style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 16px) 20px 0">
+      <button data-action="upgradeClose" aria-label="Back" style="width:44px;height:44px;border-radius:50%;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-brd);display:flex;align-items:center;justify-content:center;color:var(--ink)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <a href="/" style="font-family:'Fraunces',serif;font-size:22px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none">Lumi</a>
+      <span style="width:44px"></span>
+    </div>
+    <div style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 26px 40px;text-align:center">
+      <div style="width:58px;height:58px;border-radius:18px;background:var(--glass-strong);border:1px solid var(--glass-brd);display:flex;align-items:center;justify-content:center;margin-bottom:18px;box-shadow:0 14px 30px -16px rgba(20,30,25,.5)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="var(--ink)" stroke="none"><path d="M12 2.5l2.1 5.4 5.9.3-4.6 3.7 1.6 5.7L12 14.9 6.9 17.6l1.6-5.7L3.9 8.2l5.9-.3z"/></svg>
+      </div>
+      <h2 style="font-family:'Fraunces',serif;font-size:27px;font-weight:500;line-height:1.08;letter-spacing:-.8px;color:var(--ink);margin-bottom:8px;text-wrap:balance;max-width:320px">${title}</h2>
+      <p style="font-size:14px;color:var(--ink-soft);line-height:1.5;max-width:300px;margin-bottom:26px">${sub}</p>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:16px;width:100%">
+        ${plan('buyAnnual',t('up.bestValue'),t('up.annual'),'$39.99',t('up.perYear'),t('up.annualNote'))}
+        ${plan('buyMonthly','',t('up.monthly'),'$4.99',t('up.perMonth'),t('up.monthlyNote'))}
+      </div>
+      <div style="margin-top:22px;font-size:12.5px;color:var(--ink-soft);line-height:1.7;max-width:300px">${t('up.features')}</div>
+      ${anon ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--glass-brd);max-width:300px;width:100%">
+        <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:5px">${esc(t('up.keepHint'))}</div>
+        <button data-action="goAuthSave" style="font-size:13.5px;color:var(--ink);font-weight:700;border-bottom:1px solid var(--glass-brd);padding-bottom:1px">${esc(t('up.signInSave'))} ›</button>
+      </div>` : ''}
+      <button data-action="upgradeClose" style="margin-top:${anon?'16px':'20px'};font-size:13.5px;color:var(--ink-soft);font-weight:600">${esc(t('up.maybeLater'))}</button>
+    </div>
+  </div>`;
+}
+
+function homeView(){
+  const badge = (state.journals[state.learning]||[]).length;
+  return `<div style="position:absolute;inset:0;background:var(--bg);overflow:hidden;display:flex;flex-direction:column">
+    <div style="position:absolute;left:-20%;right:-20%;top:58%;height:200px;background:var(--mtn);filter:blur(34px);border-radius:50%;transform:scaleX(1.4)"></div>
+    <div style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 16px) 20px 0">
+      <button data-action="settings" aria-label="Change languages" style="width:44px;height:44px;border-radius:50%;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-brd);display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14.5 14.5 0 0 1 0 18 14.5 14.5 0 0 1 0-18z"/></svg>
+      </button>
+      <a href="/" aria-label="Go to the Lumi home page" style="display:inline-flex;align-items:center;gap:7px;font-family:'Fraunces',serif;font-size:24px;font-weight:600;letter-spacing:-.4px;color:var(--ink);text-decoration:none"><img src="/assets/lumi-mark.png" alt="" style="width:26px;height:26px;object-fit:contain">Lumi</a>
+      <button data-action="journal" aria-label="Open your collection" style="position:relative;width:44px;height:44px;border-radius:50%;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-brd);display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>
+        ${badge>0?`<span style="position:absolute;top:-3px;right:-3px;background:var(--ink);color:var(--bg-solid);min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;padding:0 4px;border:2px solid var(--bg-solid)">${badge>99?'99+':badge}</span>`:''}
+      </button>
+    </div>
+    ${reviewDueToday() > 0 ? `<div style="position:relative;flex-shrink:0;display:flex;justify-content:center;padding:12px 16px 0">
+      <div style="display:flex;align-items:center;gap:8px;width:100%;max-width:420px;padding:10px 10px 10px 15px;border-radius:20px;background:var(--glass-strong);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-brd);box-shadow:0 12px 30px -16px rgba(30,40,40,.42)">
+        <button data-action="startDailyReview" style="flex:1;display:flex;align-items:center;gap:11px;text-align:left;color:var(--ink);min-width:0">
+          <span style="font-size:21px;flex-shrink:0">🔁</span>
+          <span style="min-width:0">
+            <span style="display:block;font-size:14.5px;font-weight:700;line-height:1.15">${esc(t('home.reviewTitle'))}</span>
+            <span style="display:block;font-size:12.5px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(tCountIn(reviewDueToday(), langOf(state.learning).native) + ' — ' + t('home.reviewReady'))}</span>
+          </span>
+        </button>
+        <button data-action="dismissReview" aria-label="Not now" style="flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--glass);border:1px solid var(--glass-brd);color:var(--ink-soft);font-size:16px;display:flex;align-items:center;justify-content:center">×</button>
+      </div>
+    </div>` : ''}
+    <div style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 30px;text-align:center">
+      <h2 style="font-family:'Fraunces','Noto Serif',serif;font-size:34px;font-weight:500;line-height:1.05;letter-spacing:-1px;color:var(--ink);margin-bottom:8px;text-wrap:balance">${uiLang()==='en' ? 'What\'s <span style="font-style:italic">in front</span><br>of you?' : esc(t('home.heading'))}</h2>
+      <p style="font-size:14px;color:var(--ink-soft);margin-bottom:44px">${esc(t('home.sub'))}</p>
+      <button data-action="capture" style="width:122px;height:122px;border-radius:50%;background:var(--glass-strong);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--glass-brd);box-shadow:0 20px 44px -16px rgba(30,40,40,.45);display:flex;align-items:center;justify-content:center;animation:lumiDrift 5s ease-in-out infinite">
+        <div style="width:88px;height:88px;border-radius:50%;border:1.5px solid var(--ink);opacity:.85;display:flex;align-items:center;justify-content:center">
+          <div style="width:34px;height:27px;border:2px solid var(--ink);border-radius:7px;position:relative">
+            <div style="position:absolute;width:13px;height:13px;border:2px solid var(--ink);border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%)"></div>
+            <div style="position:absolute;width:11px;height:5px;background:var(--ink);border-radius:3px 3px 0 0;left:50%;top:-6px;transform:translateX(-50%)"></div>
+          </div>
+        </div>
+      </button>
+      <button data-action="upload" style="margin-top:24px;font-size:13px;color:var(--ink-soft);font-weight:600;border-bottom:1px solid var(--glass-brd);padding-bottom:2px">${esc(t('home.upload'))}</button>
+      ${!isPremium() ? `<button data-action="goUpgrade" style="margin-top:22px;display:inline-flex;align-items:center;gap:7px;padding:7px 15px;border-radius:22px;background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--glass-brd);font-size:12px;font-weight:600;color:var(--ink-soft)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.1 5.4 5.9.3-4.6 3.7 1.6 5.7L12 14.9 6.9 17.6l1.6-5.7L3.9 8.2l5.9-.3z"/></svg>
+        ${freeLeft() > 0 ? esc(tFreeLeft(freeLeft())) : esc(t('home.unlockPro'))}
+      </button>` : ''}
+    </div>
+    <div style="position:relative;padding:0 30px 38px;text-align:center;font-size:11.5px;color:var(--ink-soft);line-height:1.5">${esc(t('home.privacy'))}</div>
+  </div>`;
+}
+
+function processingView(){
+  const cur = state.current;
+  const caption = state.procPhase === 0 ? t('proc.cutting') : t('proc.finding');
+  const bg = cur.photo ? `url('${cur.photo}') center/cover` : sceneBg(cur.objKey);
+  // While cutting: photo with a tracing border. Once the cut-out is ready: reveal it.
+  const floatEl = (cur.cutout)
+    ? cutoutImg(cur.cutout, 190, 220, 2)
+    : (cur.photo
+        ? scanningFrame(cur.photo, 184, 216)
+        : `<div style="${stickerStyle(cur.objKey,128)}"><span style="${labelStyle(false)}">${esc(OBJECTS[cur.objKey].label)}</span></div>`);
+  const hint = state.procHint
+    ? `<div style="font-size:11.5px;color:rgba(255,255,255,.85);max-width:230px;text-align:center;line-height:1.5;text-shadow:0 1px 3px rgba(0,0,0,.3)">${esc(t('proc.firstUse'))}</div>`
+    : '';
+  return `<div style="position:absolute;inset:0;overflow:hidden;background:var(--bg)">
+    <div style="position:absolute;inset:-30px;background:${bg};filter:blur(26px) saturate(1.05);transform:scale(1.15)"></div>
+    <div style="position:absolute;inset:0;background:rgba(20,24,26,.14)"></div>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px">
+      <div style="animation:lumiBob 4s ease-in-out infinite">
+        ${floatEl}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
+        <div style="padding:9px 18px;border-radius:24px;background:rgba(255,255,255,.5);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--ink);font-size:13.5px;font-weight:600;border:1px solid var(--glass-brd)">${caption}</div>
+        ${hint}
+      </div>
+    </div>
+  </div>`;
+}
+
+function resultView(){
+  const cur = state.current;
+  if(cur && cur.found && cur.word){
+    prefetchTTS(cur.word, cur.learning);   // warm audio for the ♪ tap
+    prepareShare({ word:cur.word, meaning:cur.meaning, example:cur.example, exampleTr:cur.exampleTr, reading:cur.reading, image:cur.cutout||cur.photo, cut:!!cur.cutout, learning:cur.learning });   // pre-render the share image
+  }
+  const learnPill = t('result.learningLabel') + ' · ' + langOf(state.learning).native;
+  const badge = (state.journals[state.learning]||[]).length;
+  const bg = cur.photo ? `url('${cur.photo}') center/cover` : '#c9ccc6';
+  let floatEl;
+  if(cur.cutout){
+    const obj = cutoutImg(cur.cutout, 210, 250, 2.5);
+    floatEl = state.reveal
+      ? `<div style="animation:lumiReveal .5s cubic-bezier(.2,.9,.3,1) both, lumiGlow .9s ease-out .05s 1">${obj}</div>`
+      : obj;
+  } else {
+    floatEl = cur.photo ? `<div style="${photoFrame(cur.photo, 200, 234)}"></div>` : '';
+  }
+
+  let card;
+  if(cur.found){
+    const saveStyle = css({ flex:'1', height:'54px', borderRadius:'27px', fontSize:'15.5px', fontWeight:'600',
+      background: state.saved?'rgba(255,255,255,.5)':'var(--cta)', color: state.saved?'var(--ink)':'var(--cta-ink)',
+      border: state.saved?'1.5px solid var(--glass-brd)':'none' });
+    card = `<div style="width:100%;max-width:480px;margin:0 auto;border-radius:30px;background:rgba(255,255,255,.6);backdrop-filter:blur(26px) saturate(1.3);-webkit-backdrop-filter:blur(26px) saturate(1.3);border:1px solid var(--glass-brd);box-shadow:0 24px 50px -18px rgba(25,30,30,.45);padding:24px 24px 22px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.4px;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px">${esc(t('result.newWord'))}</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+        <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-weight:500;font-size:42px;line-height:.95;letter-spacing:-1.2px;color:var(--ink)">${esc(cur.word)}</div>
+        <button data-action="speak" aria-label="Hear pronunciation" style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--glass-brd);background:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:14px;flex-shrink:0">♪</button>
+      </div>
+      ${readingOf(cur.word, cur.learning, cur.reading) ? `<div style="font-size:15px;color:var(--ink-soft);margin-top:4px;letter-spacing:.3px">${esc(readingOf(cur.word, cur.learning, cur.reading))}</div>` : ''}
+      <div style="font-size:16px;color:var(--ink-soft);font-weight:500;margin-top:6px">${esc(cur.meaning)}</div>
+      <div style="height:1px;background:var(--glass-brd);margin:15px 0 13px"></div>
+      <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-style:italic;font-size:16.5px;line-height:1.4;color:var(--ink)">${esc(cur.example)}</div>
+      ${cur.exampleTr ? `<div style="font-size:14px;color:var(--ink-soft);line-height:1.42;margin-top:6px">${esc(cur.exampleTr)}</div>` : ''}
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button data-action="save" style="${saveStyle}">${state.saved?esc(t('result.saved')):esc(t('result.save'))}</button>
+        <button data-action="retake" style="height:54px;padding:0 22px;border-radius:27px;background:transparent;border:1.5px solid var(--ink);color:var(--ink);font-size:15px;font-weight:600;opacity:.85">${esc(t('result.retake'))}</button>
+      </div>
+      <button data-action="shareCurrent" style="width:100%;margin-top:11px;height:48px;border-radius:24px;background:transparent;border:1.5px solid var(--glass-brd);color:var(--ink);font-size:14.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg>
+        ${esc(t('result.share'))}
+      </button>
+    </div>`;
+  } else {
+    const title = cur.error === 'network' ? t('result.noConnTitle') : t('result.hmm');
+    const msg = cur.error === 'network'
+      ? t('result.noConnMsg')
+      : (cur.error === 'server' ? t('result.serverMsg') : t('result.notFoundMsg'));
+    card = `<div style="width:100%;max-width:480px;margin:0 auto;border-radius:30px;background:rgba(255,255,255,.62);backdrop-filter:blur(26px) saturate(1.3);-webkit-backdrop-filter:blur(26px) saturate(1.3);border:1px solid var(--glass-brd);box-shadow:0 24px 50px -18px rgba(25,30,30,.45);padding:24px 24px 22px">
+      <div style="font-family:'Fraunces',serif;font-weight:500;font-size:26px;letter-spacing:-.6px;color:var(--ink);margin-bottom:6px">${esc(title)}</div>
+      <div style="font-size:14.5px;line-height:1.5;color:var(--ink-soft)">${esc(msg)}</div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button data-action="retake" style="flex:1;height:54px;border-radius:27px;background:var(--cta);color:var(--cta-ink);font-size:15.5px;font-weight:600">${esc(t('result.tryAgain'))}</button>
+        <button data-action="close" style="height:54px;padding:0 22px;border-radius:27px;background:transparent;border:1.5px solid var(--ink);color:var(--ink);font-size:15px;font-weight:600;opacity:.85">${esc(t('result.back'))}</button>
+      </div>
+    </div>`;
+  }
+
+  return `<div style="position:absolute;inset:0;overflow:hidden;background:var(--bg);display:flex;flex-direction:column">
+    <div style="position:absolute;inset:-30px;background:${bg};filter:blur(var(--photo-blur)) saturate(1.08);transform:scale(1.16)"></div>
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,24,26,.04),rgba(20,24,26,.22))"></div>
+    <div style="position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 16px) 20px 0">
+      <button data-action="close" style="width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.4);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.5);color:var(--ink);font-size:19px;display:flex;align-items:center;justify-content:center">←</button>
+      <div style="padding:8px 15px;border-radius:24px;background:rgba(255,255,255,.4);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.5);color:var(--ink);font-size:12.5px;font-weight:600">${esc(learnPill)}</div>
+      <button data-action="journal" aria-label="Open your collection" style="position:relative;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.4);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.5);color:var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>
+        ${badge>0?`<span style="position:absolute;top:-3px;right:-3px;background:var(--ink);color:var(--bg-solid);min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;padding:0 4px;border:2px solid var(--bg-solid)">${badge>99?'99+':badge}</span>`:''}
+      </button>
+    </div>
+    <div style="position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:12px 0">
+      <div class="resFloat" style="animation:lumiBob 5s ease-in-out infinite;display:flex;align-items:center;justify-content:center">
+        ${floatEl}
+      </div>
+    </div>
+    <div style="position:relative;flex-shrink:0;padding:0 14px calc(env(safe-area-inset-bottom) + 16px)">${card}</div>
+  </div>`;
+}
+
+// word / meaning / example for a card (handles legacy sample cards).
+function cardWME(card){
+  const o = card.objKey ? OBJECTS[card.objKey] : null;
+  return {
+    o,
+    word: card.word || (o ? o.forms[card.learning] : ''),
+    meaning: card.meaning || (o ? o.forms[state.spoken] : ''),
+    example: card.example || (o ? o.ex[card.learning] : ''),
+    exampleTr: card.exampleTr || '',
+    reading: card.reading || '',
+  };
+}
+function cardThumb(card, size){
+  const o = card.objKey ? OBJECTS[card.objKey] : null;
+  if(card.image){
+    return card.cut
+      ? `<div style="height:${size}px;display:flex;align-items:center;justify-content:center">${cutoutImg(card.image, size, size, 1.6)}</div>`
+      : `<div style="${photoFrame(card.image, size-4, size-4)}"></div>`;
+  }
+  return o ? `<div style="${stickerStyle(card.objKey, Math.round(size*0.84))}"><span style="${labelStyle(true)}">${esc(o.label)}</span></div>` : '';
+}
+
+function journalView(){
+  const learnPill = t('result.learningLabel') + ' · ' + langOf(state.learning).native;
+  const cards = state.journals[state.learning] || [];
+  const learnNat = langOf(state.learning).native;
+  const count = tCountIn(cards.length, learnNat);
+  const mode = state.journalMode || 'cards';
+
+  let body;
+  if(cards.length === 0){
+    body = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:54px 40px;gap:16px;min-height:430px">
+        <div style="width:96px;height:96px;border-radius:48% 52% 55% 45% / 52% 46% 54% 48%;background:var(--glass-strong);border:1px solid var(--glass-brd);box-shadow:0 16px 36px -16px rgba(30,40,40,.4)"></div>
+        <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:500;font-style:italic;color:var(--ink)">${esc(t('journal.emptyTitle'))}</div>
+        <div style="font-size:14px;color:var(--ink-soft);max-width:230px;line-height:1.5">${esc(t('journal.emptySub'))}</div>
+        <button data-action="journalCapture" style="margin-top:6px;height:50px;padding:0 26px;border-radius:25px;background:var(--cta);color:var(--cta-ink);font-weight:600;font-size:15px">${esc(t('journal.capture'))}</button>
+      </div>`;
+  } else if(mode === 'review'){
+    body = reviewBody(cards);
+  } else if(mode === 'categories'){
+    body = categoriesBody(cards);
+  } else {
+    body = cardsBody(cards);
+  }
+
+  const switcher = cards.length ? `<div style="display:flex;gap:4px;margin-top:14px;padding:4px;border-radius:16px;background:var(--glass);border:1px solid var(--glass-brd)">
+        ${['cards','review','categories'].map(m => `<button data-action="setJMode" data-mode="${m}" style="flex:1;height:34px;border-radius:13px;border:none;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;${mode===m?'background:var(--cta);color:var(--cta-ink)':'background:transparent;color:var(--ink-soft)'}">${m==='cards'?esc(t('journal.tabCards')):m==='review'?esc(t('journal.tabReview')):esc(t('journal.tabCategories'))}</button>`).join('')}
+      </div>` : '';
+
+  return `<div class="scroll" style="position:absolute;inset:0;background:var(--field);overflow-x:hidden">
+    <div style="position:sticky;top:0;z-index:10;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:var(--field-fade);padding:calc(env(safe-area-inset-top) + 18px) 22px 16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <button data-action="openSwitchLearning" style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:5px">${esc(learnPill)} <span style="font-size:9px">▾</span></button>
+          <h1 style="font-family:'Fraunces',serif;font-weight:500;font-size:32px;letter-spacing:-.8px;color:var(--ink);line-height:.95">${uiLang()==='en' ? 'Your <span style="font-style:italic">collection</span>' : esc(t('journal.title'))}</h1>
+          <div style="font-size:13px;color:var(--ink-soft);margin-top:4px">${esc(count)}</div>
+        </div>
+        <button data-action="journalCapture" aria-label="Capture something" style="width:46px;height:46px;border-radius:50%;background:var(--cta);color:var(--cta-ink);display:flex;align-items:center;justify-content:center;box-shadow:0 12px 26px -12px rgba(25,30,30,.5)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      </div>
+      ${switcher}
+    </div>
+    ${body}
+  </div>`;
+}
+
+// ---- Cards (grid of flip cards) ----
+function cardsBody(cards){
+  const faceBase = 'position:absolute;inset:0;border-radius:24px;background:var(--glass-strong);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-brd);box-shadow:0 14px 32px -16px rgba(30,40,35,.45);display:flex;flex-direction:column;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:opacity .26s ease';
+  const items = cards.map(card => {
+    const { word, meaning, example, exampleTr, reading } = cardWME(card);
+    const fl = !!state.flipped[card.id];
+    const inner = `position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.9,.3,1);transform:${fl?'rotateY(180deg)':'rotateY(0deg)'}`;
+    const front = `${faceBase};align-items:center;justify-content:center;padding:18px 14px;gap:13px;opacity:${fl?0:1}`;
+    const back  = `${faceBase};justify-content:flex-start;padding:22px 20px;gap:2px;transform:rotateY(180deg);opacity:${fl?1:0}`;
+    return `<div data-action="flip" data-id="${card.id}" style="position:relative;height:260px;perspective:1100px;cursor:pointer">
+        <div style="${inner}">
+          <div style="${front}">
+            <button data-action="speakText" data-word="${esc(word)}" data-lang="${card.learning}" aria-label="Hear pronunciation" style="position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:1px solid var(--glass-brd);background:rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:12px;z-index:2">♪</button>
+            ${cardThumb(card, 130)}
+            <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-weight:500;font-size:23px;letter-spacing:-.4px;color:var(--ink);text-align:center;line-height:1.08">${esc(word)}</div>
+            ${readingOf(word, card.learning, card.reading) ? `<div style="font-size:12.5px;color:var(--ink-soft);text-align:center;letter-spacing:.2px;margin-top:-7px">${esc(readingOf(word, card.learning, card.reading))}</div>` : ''}
+          </div>
+          <div style="${back}">
+            <div style="font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-soft)">${esc(t('card.means'))}</div>
+            <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:500;color:var(--ink);line-height:1.05;margin-top:3px">${esc(meaning)}</div>
+            <div style="height:1px;background:var(--glass-brd);margin:11px 0"></div>
+            <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-style:italic;font-size:14px;line-height:1.4;color:var(--ink)">${esc(example)}</div>
+            ${exampleTr ? `<div style="font-size:12px;color:var(--ink-soft);line-height:1.38;margin-top:5px">${esc(exampleTr)}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  const cols = Math.max(2, Math.min(5, Math.floor(window.innerWidth / 260)));
+  return `<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:14px;padding:14px max(16px,4vw) 40px">${items}</div>`;
+}
+
+// ---- Categories (grouped by what the thing is) ----
+const CATEGORIES = [
+  { key:'Animals', label:'Animals', emoji:'🐾' },
+  { key:'Plants', label:'Plants', emoji:'🌿' },
+  { key:'Food & Drink', label:'Food & Drink', emoji:'🍎' },
+  { key:'Clothing', label:'Clothing', emoji:'👕' },
+  { key:'Objects', label:'Objects', emoji:'📦' },
+  { key:'People', label:'People', emoji:'🧑' },
+  { key:'Vehicles', label:'Vehicles', emoji:'🚗' },
+  { key:'Buildings & Places', label:'Places', emoji:'🏠' },
+  { key:'Nature', label:'Nature', emoji:'🏞️' },
+  { key:'Other', label:'Other', emoji:'✨' },
+];
+// Category key → translation key (the AI returns the English keys above).
+const CAT_TK = { 'Animals':'cat.Animals', 'Plants':'cat.Plants', 'Food & Drink':'cat.Food', 'Clothing':'cat.Clothing', 'Objects':'cat.Objects', 'People':'cat.People', 'Vehicles':'cat.Vehicles', 'Buildings & Places':'cat.Places', 'Nature':'cat.Nature', 'Other':'cat.Other' };
+function catLabel(cat){ return t(CAT_TK[cat.key] || 'cat.Other'); }
+let _classifying = false;
+async function classifyMissing(cards){
+  if(_classifying) return;
+  const missing = cards.filter(c => !c.category);
+  if(!missing.length) return;
+  _classifying = true;
+  try {
+    const items = missing.map(c => (((c.meaning||'') + (c.word ? ' / ' + c.word : '')).trim()) || c.word || '');
+    const r = await fetch('/api/categorize', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ items }) });
+    const cats = (await r.json()).categories || [];
+    missing.forEach((c, i) => { c.category = cats[i] || 'Other'; });
+  } catch(e){ missing.forEach(c => { c.category = c.category || 'Other'; }); }
+  _classifying = false;
+  saveStore();
+  if(state.screen === 'journal' && state.journalMode === 'categories') render();
+}
+function categoriesBody(cards){
+  if(cards.some(c => !c.category)){
+    classifyMissing(cards);
+    return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:64px 40px;min-height:38vh">
+        <div style="width:34px;height:34px;border-radius:50%;border:3px solid var(--glass-brd);border-top-color:var(--ink);animation:lumiSpin .8s linear infinite"></div>
+        <div style="font-size:14px;color:var(--ink-soft)">${esc(t('cat.sorting'))}</div>
+      </div>`;
+  }
+  const groups = {};
+  cards.forEach(c => { const k = CATEGORIES.some(x => x.key === c.category) ? c.category : 'Other'; (groups[k] = groups[k] || []).push(c); });
+  const sections = CATEGORIES.filter(cat => (groups[cat.key]||[]).length).map(cat => {
+    const list = groups[cat.key];
+    return `<div style="margin-top:8px">
+        <div style="display:flex;align-items:center;gap:9px;padding:8px max(16px,4vw) 2px">
+          <span style="font-size:19px">${cat.emoji}</span>
+          <span style="font-family:'Fraunces',serif;font-weight:500;font-size:19px;color:var(--ink)">${esc(catLabel(cat))}</span>
+          <span style="font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--glass);border:1px solid var(--glass-brd);border-radius:11px;padding:1px 9px">${list.length}</span>
+        </div>
+        ${cardsBody(list)}
+      </div>`;
+  }).join('');
+  return `<div style="padding-bottom:24px">${sections}</div>`;
+}
+
+// ---- Daily review nudge (a gentle "come back tomorrow" routine) ----
+function todayKey(){ const d = new Date(); return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate(); }
+function reviewedToday(){ try { return localStorage.getItem('lumi.lastReviewDay') === todayKey(); } catch(e){ return false; } }
+function markReviewedToday(){ try { localStorage.setItem('lumi.lastReviewDay', todayKey()); } catch(e){} }
+// How many words are waiting for today's review (0 = hide the nudge).
+function reviewDueToday(){
+  if(reviewedToday() || state.reviewHidden === todayKey()) return 0;
+  return (state.journals[state.learning] || []).length;
+}
+
+// ---- Review (Tinder-style swipe) ----
+function startReviewSession(cards){
+  const ids = cards.map(c => c.id);
+  for(let i = ids.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); const t = ids[i]; ids[i] = ids[j]; ids[j] = t; }
+  state.review = { lang: state.learning, queue: ids, total: ids.length, known: 0, flip: false, done: false };
+}
+function reviewSwipe(dir){
+  const rv = state.review; if(!rv) return;
+  const id = rv.queue.shift();
+  if(dir === 'dont'){ rv.queue.push(id); } else { rv.known++; }
+  rv.flip = false;
+  if(rv.queue.length === 0){ rv.done = true; markReviewedToday(); }
+  render();
+}
+function reviewButton(dir){
+  const card = document.querySelector('.reviewcard');
+  if(card){
+    card.style.transition = 'transform .3s ease, opacity .3s ease';
+    card.style.transform = `translate(${dir==='know'?700:-700}px,0) rotate(${dir==='know'?22:-22}deg)`;
+    card.style.opacity = '0';
+    setTimeout(() => reviewSwipe(dir), 240);
+  } else { reviewSwipe(dir); }
+}
+function rvSetFlip(card, flip){
+  if(!card || !state.review) return;
+  const inner = card.querySelector('.rv-inner'), front = card.querySelector('.rv-front'), back = card.querySelector('.rv-back');
+  if(inner) inner.style.transform = flip ? 'rotateY(180deg)' : 'rotateY(0deg)';
+  if(front) front.style.opacity = flip ? '0' : '1';
+  if(back) back.style.opacity = flip ? '1' : '0';
+  state.review.flip = flip;
+}
+function reviewBody(cards){
+  if(!state.review || state.review.lang !== state.learning) startReviewSession(cards);
+  const rv = state.review;
+  rv.queue = rv.queue.filter(id => cards.some(c => String(c.id) === String(id)));
+  if(rv.queue.length === 0) rv.done = true;
+  const learnNat = langOf(state.learning).native;
+
+  if(rv.done){
+    markReviewedToday();
+    return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:50px 40px;gap:16px;min-height:56vh">
+        <div style="font-size:46px">🎉</div>
+        <div style="font-family:'Fraunces',serif;font-size:26px;font-weight:500;color:var(--ink)">${esc(t('review.doneTitle'))}</div>
+        <div style="font-size:14.5px;color:var(--ink-soft);max-width:250px;line-height:1.5">${esc(t('review.doneSub', { w: nWords(rv.total), lang: learnNat }))}</div>
+        <button data-action="reviewAgain" style="margin-top:6px;height:50px;padding:0 28px;border-radius:25px;background:var(--cta);color:var(--cta-ink);font-weight:600;font-size:15px">${esc(t('review.again'))}</button>
+      </div>`;
+  }
+
+  const card = cards.find(c => String(c.id) === String(rv.queue[0]));
+  const { word, meaning, example, exampleTr, reading } = cardWME(card);
+  prefetchTTS(word, state.learning);   // warm audio so the ♪ tap is instant
+  const progress = rv.total ? Math.round((rv.known / rv.total) * 100) : 0;
+  const fl = rv.flip;
+  const faceBase = 'position:absolute;inset:0;border-radius:30px;background:var(--glass-strong);border:1px solid var(--glass-brd);box-shadow:0 24px 50px -20px rgba(30,40,35,.5);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:26px;-webkit-backface-visibility:hidden;backface-visibility:hidden;transition:opacity .3s';
+
+  return `<div style="display:flex;flex-direction:column;align-items:center;padding:8px 22px 20px">
+      <div style="width:100%;max-width:340px;height:6px;border-radius:3px;background:var(--glass);overflow:hidden;margin:4px 0 5px"><div style="height:100%;width:${progress}%;background:var(--cta);transition:width .35s"></div></div>
+      <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px">${esc(t('review.knownToGo', { k: rv.known, t: rv.queue.length }))}</div>
+
+      <div class="reviewcard" style="position:relative;width:min(85vw,320px);height:min(46vh,336px);perspective:1200px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none">
+        <div class="rv-inner" style="position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.2,.9,.3,1);transform:rotateY(${fl?180:0}deg)">
+          <div class="rv-face rv-front" style="${faceBase};gap:18px;opacity:${fl?0:1}">
+            ${cardThumb(card, 150)}
+            <div style="font-size:13px;color:var(--ink-soft);font-weight:600;text-align:center">${esc(t('review.whatsThis', { lang: learnNat }))}</div>
+          </div>
+          <div class="rv-face rv-back" style="${faceBase};gap:8px;text-align:center;transform:rotateY(180deg);opacity:${fl?1:0}">
+            <div style="display:flex;align-items:center;justify-content:center;gap:11px">
+              <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-weight:500;font-size:34px;letter-spacing:-1px;color:var(--ink);line-height:1.0">${esc(word)}</div>
+              <button data-action="speakText" data-word="${esc(word)}" data-lang="${state.learning}" aria-label="Hear pronunciation" style="width:38px;height:38px;flex-shrink:0;border-radius:50%;border:1.5px solid var(--glass-brd);background:rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:14px">♪</button>
+            </div>
+            ${readingOf(word, state.learning, reading) ? `<div style="font-size:14px;color:var(--ink-soft);letter-spacing:.3px;margin-top:-2px">${esc(readingOf(word, state.learning, reading))}</div>` : ''}
+            <div style="font-size:15px;color:var(--ink-soft);font-weight:500">${esc(meaning)}</div>
+            <div style="height:1px;width:60px;background:var(--glass-brd);margin:8px 0"></div>
+            <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-style:italic;font-size:15px;line-height:1.4;color:var(--ink)">${esc(example)}</div>
+            ${exampleTr ? `<div style="font-size:12.5px;color:var(--ink-soft);line-height:1.35;margin-top:5px">${esc(exampleTr)}</div>` : ''}
+          </div>
+        </div>
+        <div class="rv-like" style="position:absolute;top:18px;right:16px;padding:5px 13px;border-radius:11px;border:3px solid #2e9e5b;color:#2e9e5b;font-weight:800;font-size:17px;letter-spacing:.5px;transform:rotate(11deg);opacity:0;pointer-events:none">${esc(t('review.know'))}</div>
+        <div class="rv-nope" style="position:absolute;top:18px;left:16px;padding:5px 13px;border-radius:11px;border:3px solid #d1493f;color:#d1493f;font-weight:800;font-size:17px;letter-spacing:.5px;transform:rotate(-11deg);opacity:0;pointer-events:none">${esc(t('review.againBadge'))}</div>
+      </div>
+
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-top:11px">${esc(t('review.hint'))}</div>
+      <div style="display:flex;gap:18px;margin-top:10px">
+        <button data-action="reviewDont" aria-label="Don't know yet" style="width:62px;height:62px;border-radius:50%;background:var(--glass-strong);border:1.5px solid #d1493f;color:#d1493f;font-size:25px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px -12px rgba(30,40,35,.4)">↺</button>
+        <button data-action="reviewKnow" aria-label="I know it" style="width:62px;height:62px;border-radius:50%;background:var(--glass-strong);border:1.5px solid #2e9e5b;color:#2e9e5b;font-size:25px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px -12px rgba(30,40,35,.4)">✓</button>
+      </div>
+    </div>`;
+}
+
+/* ---- Share a card as an image (save to camera roll / post to social) --- */
+function roundRectPath(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+// Wrap text to a max pixel width. Breaks on spaces, or per-character for CJK.
+function wrapCanvasText(ctx, text, maxWidth){
+  text = String(text || '').trim();
+  if(!text) return [];
+  const cjk = /[　-鿿぀-ヿ가-힯]/.test(text);
+  const lines = [];
+  let line = '';
+  const units = (cjk && !/\s/.test(text)) ? Array.from(text) : text.split(/\s+/);
+  const join = (cjk && !/\s/.test(text)) ? '' : ' ';
+  for(const u of units){
+    const test = line ? line + join + u : u;
+    if(ctx.measureText(test).width > maxWidth && line){ lines.push(line); line = u; }
+    else line = test;
+  }
+  if(line) lines.push(line);
+  return lines;
+}
+function loadImage(src){ return new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => rej(new Error('img')); i.src = src; }); }
+
+async function renderShareCanvas(c){
+  const word = c.word || '', meaning = c.meaning || '', example = c.example || '', exampleTr = c.exampleTr || '';
+  const reading = readingOf(word, c.learning, c.reading);
+  try { await Promise.all([
+    document.fonts.load("500 92px 'Fraunces'"), document.fonts.load("italic 500 48px 'Fraunces'"),
+    document.fonts.load("500 46px 'Hanken Grotesk'"), document.fonts.load("600 60px 'Noto Serif SC'"),
+    document.fonts.load("600 60px 'Noto Serif JP'"), document.fonts.load("600 60px 'Noto Serif KR'"),
+  ]); } catch(_){}
+
+  const W = 1080, H = 1350;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  // Soft green "Meadow" frame (matches the app) around a warm-white card.
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#dfe7db'); bg.addColorStop(0.5, '#ccd8c2'); bg.addColorStop(1, '#b6c5a3');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const px = 58, py = 58, pw = W - px*2, ph = H - py*2, pr = 56;
+  ctx.save();
+  ctx.shadowColor = 'rgba(45,60,45,0.22)'; ctx.shadowBlur = 60; ctx.shadowOffsetY = 26;
+  roundRectPath(ctx, px, py, pw, ph, pr);
+  ctx.fillStyle = '#fbfcf9'; ctx.fill();
+  ctx.restore();
+  // Delicate sage hairline just inside the edge — a subtle ornament, on-brand.
+  roundRectPath(ctx, px + 16, py + 16, pw - 32, ph - 32, pr - 14);
+  ctx.strokeStyle = 'rgba(120,150,108,0.45)'; ctx.lineWidth = 2.5; ctx.stroke();
+
+  const cx = W/2, maxTextW = pw - 160, serif = "'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif";
+
+  // --- Measure the text (at full size) so we can give the image a clear gap and only
+  //     shrink the fonts when space is genuinely tight. ---
+  ctx.textAlign = 'center';
+  ctx.font = `500 92px ${serif}`;                     const wordLines = wrapCanvasText(ctx, word, maxTextW);
+  ctx.font = "500 46px 'Hanken Grotesk',sans-serif";  const meaningLines = meaning ? wrapCanvasText(ctx, meaning, maxTextW) : [];
+  ctx.font = `italic 500 48px ${serif}`;              const exLines = example ? wrapCanvasText(ctx, example, maxTextW).slice(0, 4) : [];
+  ctx.font = "400 36px 'Hanken Grotesk',sans-serif";  const trLines = exampleTr ? wrapCanvasText(ctx, exampleTr, maxTextW).slice(0, 2) : [];
+
+  // Top-anchored line-heights for each block.
+  const WORD_LH = 100, WORD_AFTER = 10, READ_LH = 56, MEAN_LH = 58, DIV_BEFORE = 28, DIV_AFTER = 32, EX_LH = 62, TR_LH = 46;
+  const readingH = reading ? READ_LH : 0;
+  const divH = exLines.length ? DIV_BEFORE + DIV_AFTER : 0;
+  const textH = wordLines.length*WORD_LH + WORD_AFTER + readingH + meaningLines.length*MEAN_LH + divH + exLines.length*EX_LH + trLines.length*TR_LH;
+
+  const contentTop = py + 84, contentBottom = py + ph - 130;   // reserve the bottom for the watermark
+  const avail = contentBottom - contentTop;
+  const GAP = 50;                          // clear breathing room between the image and the word
+  const MAX_IMG = 500, MIN_IMG = 200;
+  const gap = c.image ? GAP : 0;
+
+  // Fit [image + gap + text] into the available height: shrink the image first, then the fonts.
+  let imgBoxH = c.image ? MAX_IMG : 0, s = 1;
+  if(imgBoxH + gap + textH > avail){
+    imgBoxH = Math.max(c.image ? MIN_IMG : 0, avail - gap - textH);
+    if(imgBoxH + gap + textH > avail) s = Math.max(0.6, (avail - gap - imgBoxH) / textH);
+  }
+
+  let y = contentTop;
+  // --- Draw the image ---
+  if(c.image){
+    try {
+      const im = await loadImage(c.image);
+      const boxW = pw - 220;
+      const scale = Math.min(boxW/im.naturalWidth, imgBoxH/im.naturalHeight, 2.4);
+      const iw = im.naturalWidth*scale, ih = im.naturalHeight*scale;
+      const ix = cx - iw/2, iy = y;
+      ctx.save();
+      ctx.shadowColor = 'rgba(35,45,40,0.28)'; ctx.shadowBlur = 46; ctx.shadowOffsetY = 22;
+      if(c.cut){ ctx.drawImage(im, ix, iy, iw, ih); }
+      else { roundRectPath(ctx, ix, iy, iw, ih, 30); ctx.clip(); ctx.drawImage(im, ix, iy, iw, ih); }
+      ctx.restore();
+      y = iy + ih + GAP;                   // a clear, exact gap below the ACTUAL image bottom
+    } catch(e){ y += 24; }
+  }
+
+  // --- Draw the text top-anchored (so the gap above is exact); fonts scaled by s if tight. ---
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const fs = (n) => Math.round(n * s);
+  ctx.fillStyle = '#1d2329'; ctx.font = `500 ${fs(92)}px ${serif}`;
+  for(const ln of wordLines){ ctx.fillText(ln, cx, y); y += WORD_LH*s; }
+  y += WORD_AFTER*s;
+  if(reading){ ctx.fillStyle = 'rgba(29,35,41,0.55)'; ctx.font = `400 ${fs(40)}px 'Hanken Grotesk',sans-serif`; ctx.fillText(reading, cx, y); y += READ_LH*s; }
+  if(meaningLines.length){ ctx.fillStyle = 'rgba(29,35,41,0.64)'; ctx.font = `500 ${fs(46)}px 'Hanken Grotesk',sans-serif`; for(const ln of meaningLines){ ctx.fillText(ln, cx, y); y += MEAN_LH*s; } }
+  if(exLines.length){
+    y += DIV_BEFORE*s;
+    ctx.strokeStyle = 'rgba(29,35,41,0.16)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx-90, y); ctx.lineTo(cx+90, y); ctx.stroke();
+    y += DIV_AFTER*s;
+    ctx.fillStyle = '#1d2329'; ctx.font = `italic 500 ${fs(48)}px ${serif}`;
+    for(const ln of exLines){ ctx.fillText(ln, cx, y); y += EX_LH*s; }
+  }
+  if(trLines.length){ ctx.fillStyle = 'rgba(29,35,41,0.5)'; ctx.font = `400 ${fs(36)}px 'Hanken Grotesk',sans-serif`; for(const ln of trLines){ ctx.fillText(ln, cx, y); y += TR_LH*s; } }
+  ctx.textBaseline = 'alphabetic';         // reset for the watermark below
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(45,60,42,0.82)'; ctx.font = `600 48px ${serif}`;
+  ctx.fillText('Lumi', cx, py + ph - 66);
+  ctx.fillStyle = 'rgba(45,60,42,0.42)'; ctx.font = "600 26px 'Hanken Grotesk',sans-serif";
+  ctx.fillText('lumiwords.com', cx, py + ph - 32);
+  return cv;
+}
+
+let _shareBlob = null;
+async function shareCardObj(c){
+  showToast(t('toast.preparingImage'), true);
+  try {
+    const cv = await renderShareCanvas(c);
+    // JPEG: smaller + universally saveable (iOS "Save Image" is happiest with it).
+    const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92));
+    if(!blob) throw new Error('no blob');
+    _shareBlob = blob;
+    clearTimeout(timers._toast); state.toast = null;
+    state.share = { url: cv.toDataURL('image/jpeg', 0.92), word: c.word || 'card' };
+    render();
+  } catch(e){ console.warn('share render failed', e); showToast(t('toast.imageFail'), false); }
+}
+function shareCard(id){
+  const card = findCard(id); if(!card) return;
+  state.sheet = null;
+  const w = cardWME(card);
+  shareCardObj({ word:w.word, meaning:w.meaning, example:w.example, exampleTr:w.exampleTr, reading:w.reading, image:card.image, cut:card.cut, learning:card.learning });
+}
+function shareFilename(word){ return 'lumi-' + ((word || '').replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-+|-+$/g, '').slice(0, 28) || 'card') + '.jpg'; }
+
+// Pre-render the current result's share image in the background so tapping
+// "Share as image" can open the phone's NATIVE share sheet instantly (Save Image /
+// Save to Files / AirDrop / …) — iOS won't open it after an async delay, so the
+// image must already be ready inside the tap.
+let _sharePrep = { key: null, blob: null, url: null };
+async function prepareShare(c){
+  const key = (c.learning || '') + '|' + (c.word || '') + '|' + (c.cut ? 'c' : 'p');   // re-render if the cut-out arrives later
+  if(!c.word || _sharePrep.key === key) return;   // already prepared (or nothing to do)
+  _sharePrep = { key, blob: null, url: null };     // claim it so we render only once
+  try {
+    const cv = await renderShareCanvas(c);
+    const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92));
+    if(blob && _sharePrep.key === key){ _sharePrep.blob = blob; _sharePrep.url = cv.toDataURL('image/jpeg', 0.92); }
+  } catch(e){ /* fall back to on-demand render in shareCurrent */ }
+}
+function shareCurrent(){
+  const cur = state.current; if(!cur || !cur.found) return;
+  const key = (cur.learning || '') + '|' + (cur.word || '') + '|' + (cur.cutout ? 'c' : 'p');
+  // If the image is pre-rendered and this phone can share files → open the native
+  // share sheet DIRECTLY (no intermediate screen), so "Save Image" sits in the list.
+  if(_sharePrep.key === key && _sharePrep.blob && navigator.canShare && navigator.share){
+    const file = new File([_sharePrep.blob], shareFilename(cur.word), { type: 'image/jpeg' });
+    if(navigator.canShare({ files: [file] })){
+      _shareBlob = _sharePrep.blob;
+      navigator.share({ files: [file] }).catch(e => {
+        if(e && e.name === 'AbortError') return;             // user dismissed the sheet
+        state.share = { url: _sharePrep.url, word: cur.word }; render();   // show preview as fallback
+      });
+      return;
+    }
+  }
+  // Not ready / can't share files → the preview overlay (with long-press-to-save).
+  shareCardObj({ word:cur.word, meaning:cur.meaning, example:cur.example, exampleTr:cur.exampleTr, reading:cur.reading, image:cur.cutout||cur.photo, cut:!!cur.cutout, learning:cur.learning });
+}
+async function shareNow(){
+  if(!_shareBlob) return;
+  const word = (state.share && state.share.word) || 'card';
+  const fname = shareFilename(word);
+  const file = new File([_shareBlob], fname, { type: 'image/jpeg' });
+  try {
+    // Share ONLY the file (no title/text) — on iOS, adding text makes it a "text
+    // share" and hides the "Save Image" (camera roll) option.
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      await navigator.share({ files: [file] });
+      return;
+    }
+  } catch(e){ if(e && e.name === 'AbortError') return; }
+  try {
+    const url = URL.createObjectURL(_shareBlob);
+    const a = document.createElement('a'); a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    showToast(t('toast.imageSaved'), true);
+  } catch(e){ showToast(t('toast.saveFail'), false); }
+}
+function closeShare(){ state.share = null; _shareBlob = null; render(); }
+function shareView(){
+  if(!state.share) return '';
+  const canShare = !!(navigator.canShare && navigator.share);
+  return `<div data-action="closeShare" style="position:absolute;inset:0;background:rgba(18,22,22,.64);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:26px;animation:fadeIn .2s ease">
+    <img src="${state.share.url}" alt="Shareable card" style="max-width:min(74vw,338px);max-height:58vh;border-radius:22px;box-shadow:0 30px 70px -20px rgba(15,20,18,.7);-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:100%">
+      <button data-action="shareNow" style="height:54px;padding:0 24px;border-radius:27px;background:#f4f5f2;color:#1d2329;font-size:16px;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:9px;box-shadow:0 12px 30px -12px rgba(0,0,0,.5)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg>
+        ${canShare ? esc(t('share.shareSave')) : esc(t('share.saveImage'))}
+      </button>
+      <button data-action="closeShare" style="height:54px;padding:0 24px;border-radius:27px;background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.5);color:#fff;font-size:15px;font-weight:600;white-space:nowrap">${esc(t('share.close'))}</button>
+    </div>
+    <div style="font-size:12.5px;color:rgba(255,255,255,.78);text-align:center;max-width:300px;line-height:1.55"><b>${esc(t('share.saveTitle'))}</b> ${t('share.saveHint')}<br>${t('share.postAnywhere', { word: canShare ? t('share.share') : t('share.save') })}</div>
+  </div>`;
+}
+
+function sheetView(){
+  if(!state.sheet) return '';
+  const target = state.sheetTarget;
+  let inner = '';
+  if(state.sheet === 'switch'){
+    const selCode = target==='spoken' ? state.spoken : state.learning;
+    const disable = target==='spoken' ? state.learning : state.spoken;
+    const title = target==='spoken' ? t('sheet.speakTitle') : t('sheet.learningTitle');
+    const sub   = target==='spoken' ? t('sheet.speakSub') : t('sheet.learningSub');
+    const list  = target==='spoken' ? LANGS.filter(l => canSpeak(l.code)) : LANGS;   // native list is kept lean
+    const rows = list.map(l => {
+      const isSel = l.code===selCode, isDis = l.code===disable;
+      const rowStyle = css({ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
+        padding:'15px 17px', borderRadius:'18px', background:'var(--glass)',
+        border: isSel?'1.5px solid var(--ink)':'1px solid var(--glass-brd)', color:'var(--ink)', opacity:isDis?'0.4':'1' });
+      const check = isSel ? `<span style="width:22px;height:22px;border-radius:50%;background:var(--cta);color:var(--cta-ink);display:flex;align-items:center;justify-content:center;font-size:12px">✓</span>` : '';
+      return `<button ${isDis?'':'data-action="pickLang" data-code="'+l.code+'"'} style="${rowStyle}">
+        <span style="font-family:'Fraunces',serif;font-weight:500;font-size:19px">${esc(l.native)}</span>
+        ${check}
+      </button>`;
+    }).join('');
+    inner = `<div style="font-family:'Fraunces',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:3px;padding:0 2px">${esc(title)}</div>
+      <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;padding:0 2px">${esc(sub)}</div>
+      <div style="display:flex;flex-direction:column;gap:8px">${rows}</div>`;
+  } else if(state.sheet === 'editcard'){
+    const d = state.editDraft || { word:'', meaning:'', example:'' };
+    const card = findCard(state.editTarget);
+    const learnNat = card ? langOf(card.learning).native : '';
+    const spokenNat = langOf(state.spoken).native;
+    const q = s => esc(s).replace(/"/g, '&quot;');
+    const wrap = 'display:flex;flex-direction:column;gap:5px;margin-bottom:13px';
+    const lab = 'font-size:12px;font-weight:600;color:var(--ink-soft);padding-left:2px';
+    const inp = 'width:100%;padding:13px 15px;border-radius:14px;background:var(--glass);border:1px solid var(--glass-brd);font-family:inherit;font-size:16px;color:var(--ink);outline:none';
+    inner = `<div style="font-family:'Fraunces',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:3px;padding:0 2px">${esc(t('sheet.editTitle'))}</div>
+      <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;padding:0 2px">${esc(t('sheet.editSub'))}</div>
+      <div style="${wrap}"><span style="${lab}">${esc(t('sheet.word'))} · ${esc(learnNat)}</span><input id="ec-word" value="${q(d.word)}" oninput="lumiEdit('word', this.value)" style="${inp};font-family:'Fraunces',serif;font-size:19px"></div>
+      <div style="${wrap}"><span style="${lab}">${esc(t('sheet.meaning'))} · ${esc(spokenNat)}</span><input id="ec-meaning" value="${q(d.meaning)}" oninput="lumiEdit('meaning', this.value)" style="${inp}"></div>
+      <div style="${wrap}"><span style="${lab}">${esc(t('sheet.example'))}</span><textarea id="ec-example" rows="2" oninput="lumiEdit('example', this.value)" style="${inp};resize:none;font-family:'Fraunces',serif;font-style:italic;line-height:1.4">${esc(d.example)}</textarea></div>
+      <button data-action="saveCardEdit" style="width:100%;height:52px;border-radius:18px;background:var(--cta);color:var(--cta-ink);font-size:16px;font-weight:600;margin-top:4px">${esc(t('sheet.saveChanges'))}</button>`;
+  } else if(state.sheet === 'cardactions'){
+    const card = findCard(state.sheetTarget);
+    const w = card ? cardWME(card).word : '';
+    if(state.cardDeleteConfirm){
+      inner = `<div style="font-family:'Fraunces',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:4px;padding:0 2px">${esc(t('sheet.deleteTitle'))}</div>
+        <div style="font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;padding:0 2px;line-height:1.5">${esc(t('sheet.deleteMsg', { word: w }))}</div>
+        <button data-action="confirmDelete" style="width:100%;height:52px;border-radius:18px;background:#c0392b;color:#fff;font-size:16px;font-weight:600;margin-bottom:10px">${esc(t('sheet.delete'))}</button>
+        <button data-action="cancelDelete" style="width:100%;height:50px;border-radius:18px;background:transparent;border:1.5px solid var(--glass-brd);color:var(--ink);font-size:15px;font-weight:600">${esc(t('sheet.cancel'))}</button>`;
+    } else {
+      inner = `<div style="display:flex;align-items:center;gap:13px;margin-bottom:18px;padding:0 2px">
+          <div style="width:54px;height:54px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${card?cardThumb(card,52):''}</div>
+          <div style="font-family:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR','Noto Serif',serif;font-weight:500;font-size:22px;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(w)}</div>
+        </div>
+        <button data-action="shareFromActions" style="width:100%;height:52px;border-radius:18px;background:var(--glass);border:1px solid var(--glass-brd);color:var(--ink);font-size:15.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">⤴&nbsp; ${esc(t('sheet.shareCard'))}</button>
+        <button data-action="editFromActions" style="width:100%;height:52px;border-radius:18px;background:var(--glass);border:1px solid var(--glass-brd);color:var(--ink);font-size:15.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">✏️&nbsp; ${esc(t('sheet.editWord'))}</button>
+        <button data-action="askDelete" style="width:100%;height:52px;border-radius:18px;background:transparent;border:1.5px solid #c0392b;color:#c0392b;font-size:15.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">🗑&nbsp; ${esc(t('sheet.delete'))}</button>`;
+    }
+  } else { // settings
+    inner = `<div style="font-family:'Fraunces',serif;font-size:23px;font-weight:500;color:var(--ink);margin-bottom:3px;padding:0 2px">${esc(t('sheet.langTitle'))}</div>
+      <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;padding:0 2px">${esc(t('sheet.langSub'))}</div>
+      <button data-action="editSpoken" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:16px;border-radius:18px;background:var(--glass);border:1px solid var(--glass-brd);margin-bottom:10px">
+        <span style="font-size:13px;font-weight:600;color:var(--ink-soft)">${esc(t('sheet.iSpeak'))}</span>
+        <span style="font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.spoken).native)} ›</span>
+      </button>
+      <button data-action="editLearning" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:16px;border-radius:18px;background:var(--glass);border:1px solid var(--glass-brd);margin-bottom:18px">
+        <span style="font-size:13px;font-weight:600;color:var(--ink-soft)">${esc(t('sheet.imLearning'))}</span>
+        <span style="font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--ink)">${esc(langOf(state.learning).native)} ›</span>
+      </button>
+      <div style="font-size:12px;line-height:1.6;color:var(--ink-soft)">${esc(t('sheet.syncNote'))}</div>
+      ${isPremium() ? `<div style="height:1px;background:var(--glass-brd);margin:18px 0"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="min-width:0">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-soft)">Lumi Pro</div>
+          <div style="font-size:14px;color:var(--ink)">${esc(t('sheet.proActive'))}</div>
+        </div>
+        <button data-action="manageSub" style="flex-shrink:0;height:42px;padding:0 16px;border-radius:21px;background:var(--glass);border:1px solid var(--glass-brd);color:var(--ink);font-size:14px;font-weight:600">${esc(t('sheet.manage'))}</button>
+      </div>` : ''}
+      ${state.user ? `<div style="height:1px;background:var(--glass-brd);margin:18px 0"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="min-width:0">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-soft)">${esc(t('sheet.signedIn'))}</div>
+          <div style="font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(state.user.email || '')}</div>
+        </div>
+        <button data-action="signOut" style="flex-shrink:0;height:42px;padding:0 18px;border-radius:21px;background:transparent;border:1.5px solid var(--ink);color:var(--ink);font-size:14px;font-weight:600">${esc(t('sheet.signOut'))}</button>
+      </div>` : `<div style="height:1px;background:var(--glass-brd);margin:18px 0"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="min-width:0">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-soft)">${esc(t('sheet.account'))}</div>
+          <div style="font-size:13.5px;color:var(--ink-soft);line-height:1.35">${esc(t('sheet.saveSub'))}</div>
+        </div>
+        <button data-action="goAuthSave" style="flex-shrink:0;height:42px;padding:0 18px;border-radius:21px;background:var(--cta);color:var(--cta-ink);font-size:14px;font-weight:700">${esc(t('sheet.signIn'))}</button>
+      </div>`}`;
+  }
+  return `<div data-action="closeSheet" style="position:absolute;inset:0;background:rgba(20,24,24,.4);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:50;animation:fadeIn .2s ease"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:51;background:var(--sheet);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-radius:30px 30px 0 0;border-top:1px solid var(--glass-brd);box-shadow:0 -20px 50px -20px rgba(20,24,24,.4);padding:12px 22px 32px;max-height:80%;overflow-y:auto;animation:sheetUp .32s cubic-bezier(.2,.9,.3,1)">
+      <div style="width:42px;height:5px;border-radius:3px;background:var(--ink);opacity:.2;margin:6px auto 18px"></div>
+      ${inner}
+    </div>`;
+}
+
+function toastView(){
+  if(!state.toast) return '';
+  const t = state.toast;
+  const badge = t.good
+    ? `<span style="width:19px;height:19px;border-radius:50%;background:#6fcf9a;color:#0a3b25;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">✓</span>`
+    : `<span style="width:19px;height:19px;border-radius:50%;background:#f0c36d;color:#3b2a0a;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">!</span>`;
+  return `<div style="position:absolute;left:50%;top:58px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:9px;padding:12px 20px;border-radius:26px;background:var(--cta);color:var(--cta-ink);font-size:14px;font-weight:600;box-shadow:0 16px 36px -14px rgba(20,24,24,.5);max-width:90%;animation:fadeIn .25s ease">
+    ${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.msg)}</span></div>`;
+}
+
+/* ---- 9. The master render: build the screen from the current state ----- */
+function render(){
+  const app = document.getElementById('app');
+
+  // apply theme variables onto the page root (so the body backdrop can use
+  // them on laptops) and onto #app, plus the photo-blur value.
+  const t = theme();
+  Object.entries(t).forEach(([k,v]) => {
+    document.documentElement.style.setProperty(k, v);
+    app.style.setProperty(k, v);
+  });
+  app.style.setProperty('--photo-blur', '20px');
+
+  let screenHtml = '';
+  switch(state.screen){
+    case 'loading':    screenHtml = loadingView(); break;
+    case 'auth':       screenHtml = authView(); break;
+    case 'onboarding': screenHtml = onboardingView(); break;
+    case 'home':       screenHtml = homeView(); break;
+    case 'processing': screenHtml = processingView(); break;
+    case 'result':     screenHtml = resultView(); break;
+    case 'journal':    screenHtml = journalView(); break;
+    case 'upgrade':    screenHtml = upgradeView(); break;
+  }
+
+  // The sheet/toast don't belong on the loading or auth screens.
+  const overlays = (state.screen === 'auth' || state.screen === 'loading') ? '' : (sheetView() + shareView() + toastView());
+  app.innerHTML = statusBar() + screenHtml + overlays;
+}
+
+/* ---- 10. One click handler for the whole app (event delegation) -------- */
+const ACTIONS = {
+  editSpoken:        () => openSheet('switch','spoken'),
+  editLearning:      () => openSheet('switch','learning'),
+  continue:          () => beginOnboarding(),
+  settings:          () => openSheet('settings'),
+  journal:           () => { state.journalMode = 'cards'; state.review = null; go('journal'); },
+  openSwitchLearning:() => openSheet('switch','learning'),
+  capture:           () => { if(atFreeLimit()){ go('upgrade'); return; } openCamera(); },
+  upload:            () => { if(atFreeLimit()){ go('upgrade'); return; } openFilePicker(); },
+  goUpgrade:         () => go('upgrade'),
+  upgradeClose:      () => go('home'),
+  buyAnnual:         () => startCheckout('annual', POLAR_ANNUAL_URL),
+  buyMonthly:        () => startCheckout('monthly', POLAR_MONTHLY_URL),
+  goAuthSave:        () => { state.authMode = 'signup'; state.authError = ''; state.authNotice = t('auth.saveNotice'); go('auth'); },
+  authSkip:          () => { state.authNotice = ''; state.authError = ''; go(state.onboarded ? 'home' : 'onboarding'); },
+  manageSub:         () => { if(POLAR_PORTAL_URL){ window.open(POLAR_PORTAL_URL, '_blank'); } else { showToast(t('toast.subManage'), false); } },
+  close:             () => go('home'),
+  retake:            () => openCamera(),
+  save:              () => save(),
+  speak:             () => { if(state.current) speak(state.current.word, state.current.learning); },
+  speakText:         (el) => speak(el.getAttribute('data-word'), el.getAttribute('data-lang')),
+  journalCapture:    () => go('home'),
+  closeSheet:        () => closeSheet(),
+  pickLang:          (el) => pickLang(el.getAttribute('data-code')),
+  flip:              (el) => toggleFlip(el.getAttribute('data-id')),
+  editCard:          (el) => openEditCard(el.getAttribute('data-id')),
+  saveCardEdit:      () => saveCardEdit(),
+  editFromActions:   () => openEditCard(state.sheetTarget),
+  askDelete:         () => { state.cardDeleteConfirm = true; render(); },
+  cancelDelete:      () => { state.cardDeleteConfirm = false; render(); },
+  confirmDelete:     () => deleteCard(state.sheetTarget),
+  setJMode:          (el) => { const m = el.getAttribute('data-mode'); state.journalMode = m; if(m === 'review') startReviewSession(state.journals[state.learning]||[]); render(); },
+  startDailyReview:  () => { state.journalMode = 'review'; state.review = null; startReviewSession(state.journals[state.learning]||[]); go('journal'); },
+  dismissReview:     () => { state.reviewHidden = todayKey(); render(); },
+  shareCurrent:      () => shareCurrent(),
+  shareFromActions:  () => shareCard(state.sheetTarget),
+  shareNow:          () => shareNow(),
+  closeShare:        () => closeShare(),
+  reviewKnow:        () => reviewButton('know'),
+  reviewDont:        () => reviewButton('dont'),
+  reviewAgain:       () => { startReviewSession(state.journals[state.learning]||[]); render(); },
+  submitAuth:        () => submitAuth(),
+  googleSignIn:      () => googleSignIn(),
+  magicLink:         () => magicLink(),
+  toggleAuthMode:    () => setAuthMode(state.authMode === 'signup' ? 'signin' : 'signup'),
+  authReset:         () => setAuthMode('reset'),
+  authSignin:        () => setAuthMode('signin'),
+  signOut:           () => signOut(),
+};
+// Submit the sign-in form with the Enter key.
+document.getElementById('app').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && state.screen === 'auth' && (e.target.id === 'authEmail' || e.target.id === 'authPass')){
+    e.preventDefault(); submitAuth();
+  }
+});
+document.getElementById('app').addEventListener('click', (e) => {
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const fn = ACTIONS[el.getAttribute('data-action')];
+  if(fn) fn(el);
+});
+
+// Long-press (touch) or right-click (desktop) on a collection card → Edit / Delete.
+(function(){
+  const appEl = document.getElementById('app');
+  const cardOf = (e) => e.target.closest('[data-action="flip"]');
+  let timer = null, start = null;
+  appEl.addEventListener('touchstart', (e) => {
+    const card = cardOf(e); if(!card) return;
+    const id = card.getAttribute('data-id'), t = e.touches[0];
+    start = { x:t.clientX, y:t.clientY };
+    clearTimeout(timer);
+    timer = setTimeout(() => { timer = null; _lpAt = Date.now(); openCardActions(id); try { navigator.vibrate && navigator.vibrate(12); } catch(_){} }, 480);
+  }, { passive:true });
+  appEl.addEventListener('touchmove', (e) => {
+    if(!timer || !start) return;
+    const t = e.touches[0];
+    if(Math.abs(t.clientX-start.x) + Math.abs(t.clientY-start.y) > 10){ clearTimeout(timer); timer = null; }
+  }, { passive:true });
+  const cancel = () => { clearTimeout(timer); timer = null; start = null; };
+  appEl.addEventListener('touchend', cancel, { passive:true });
+  appEl.addEventListener('touchcancel', cancel, { passive:true });
+  // swallow the click the OS fires right after a long-press (so it neither flips nor closes the sheet)
+  appEl.addEventListener('click', (e) => { if(Date.now() - _lpAt < 700){ e.stopPropagation(); e.preventDefault(); _lpAt = 0; } }, true);
+  appEl.addEventListener('contextmenu', (e) => {
+    const card = cardOf(e); if(!card) return;
+    e.preventDefault(); openCardActions(card.getAttribute('data-id'));
+  });
+})();
+
+// Review (Tinder-style) cards: tap = flip, swipe = know/again. Uses Pointer
+// Events with pointer capture so tap/swipe detection is reliable on touch (the
+// old code moved the card on any micro-movement, which suppressed the tap on
+// phones). The card only starts moving past a real drag threshold, so a tap
+// stays a clean tap and always flips.
+(function(){
+  const appEl = document.getElementById('app');
+  let d = null;
+  const DRAG = 10, TAP = 14, SWIPE = 80;
+  const inReview = () => state.screen === 'journal' && (state.journalMode||'cards') === 'review';
+  appEl.addEventListener('pointerdown', (e) => {
+    if(!inReview()) return;
+    if(e.target.closest('button')) return;   // let the ♪ (and other) buttons work without flipping/dragging
+    const card = e.target.closest('.reviewcard'); if(!card) return;
+    d = { sx:e.clientX, sy:e.clientY, card, dx:0, moved:0, id:e.pointerId, dragging:false };
+    try { card.setPointerCapture(e.pointerId); } catch(_){}
+    card.style.transition = 'none';
+  });
+  appEl.addEventListener('pointermove', (e) => {
+    if(!d || e.pointerId !== d.id) return;
+    const dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+    d.dx = dx; d.moved = Math.max(d.moved, Math.abs(dx) + Math.abs(dy));
+    if(d.moved < DRAG) return;                 // still within tap range → don't move the card
+    d.dragging = true;
+    d.card.style.transform = `translate(${dx}px, ${dy*0.16}px) rotate(${dx*0.05}deg)`;
+    const like = d.card.querySelector('.rv-like'), nope = d.card.querySelector('.rv-nope');
+    if(like) like.style.opacity = Math.max(0, Math.min(1, dx/90));
+    if(nope) nope.style.opacity = Math.max(0, Math.min(1, -dx/90));
+  });
+  const end = (e) => {
+    if(!d || (e && e.pointerId !== d.id)) return;
+    const { dx, moved, card } = d; d = null;
+    if(Math.abs(dx) > SWIPE){
+      const dir = dx > 0 ? 'know' : 'dont';
+      card.style.transition = 'transform .3s ease, opacity .3s ease';
+      card.style.transform = `translate(${dx>0?700:-700}px,0) rotate(${dx>0?22:-22}deg)`;
+      card.style.opacity = '0';
+      setTimeout(() => reviewSwipe(dir), 240);
+    } else if(moved < TAP){                     // a tap → flip
+      card.style.transition = 'transform .25s ease'; card.style.transform = '';
+      rvSetFlip(card, !state.review.flip);
+    } else {                                     // partial drag → settle back, no flip
+      card.style.transition = 'transform .25s ease'; card.style.transform = '';
+      const like = card.querySelector('.rv-like'), nope = card.querySelector('.rv-nope');
+      if(like) like.style.opacity = 0; if(nope) nope.style.opacity = 0;
+    }
+  };
+  appEl.addEventListener('pointerup', end);
+  appEl.addEventListener('pointercancel', end);
+})();
+
+/* ---- 11. When a real photo is picked: compress it, then run capture ---- */
+document.getElementById('fileInput').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;                       // user cancelled the picker
+  try {
+    const photo = await compressImage(file, 1024, 0.74);
+    startCapture(photo);
+  } catch(err){
+    console.warn('Photo read failed:', err);
+    showToast(t('toast.photoFail'), false);
+  }
+});
+
+/* ---- 12. Reflow responsive layouts (e.g. collection columns) on resize - */
+let _resizeTimer;
+window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTimer = setTimeout(render, 150); });
+
+/* ---- 13. Go! ----------------------------------------------------------- */
+render();
+initAuth();   // check for an existing session, then show auth or the app
+</script>
+<!-- Vercel Web Analytics (privacy-friendly visitor counts). Enable it in Vercel → Project → Analytics. -->
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

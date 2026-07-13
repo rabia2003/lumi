@@ -1,0 +1,128 @@
+{
+  "g1": {
+    "es": {
+      "word": "un amuleto",
+      "meaning": "a charm"
+    },
+    "zh": {
+      "word": "一个香囊",
+      "meaning": "a sachet"
+    },
+    "ru": {
+      "word": "амулет",
+      "meaning": "amulet"
+    },
+    "kk": {
+      "word": "сәлтір",
+      "meaning": "a small embroidered charm or amulet"
+    }
+  },
+  "g2": {
+    "es": {
+      "word": "una planta",
+      "meaning": "a plant"
+    },
+    "zh": {
+      "word": "一盆植物",
+      "meaning": "a potted plant"
+    },
+    "ru": {
+      "word": "растение",
+      "meaning": "plant"
+    },
+    "kk": {
+      "word": "өсімдік",
+      "meaning": "plant"
+    }
+  },
+  "g3": {
+    "es": {
+      "word": "el sushi",
+      "meaning": "the sushi"
+    },
+    "zh": {
+      "word": "寿司",
+      "meaning": "sushi"
+    },
+    "ru": {
+      "word": "суши",
+      "meaning": "sushi"
+    },
+    "kk": {
+      "word": "сүши",
+      "meaning": "sushi"
+    }
+  },
+  "g4": {
+    "es": {
+      "word": "la botella",
+      "meaning": "the bottle"
+    },
+    "zh": {
+      "word": "一个橙色的水瓶",
+      "meaning": "an orange water bottle"
+    },
+    "ru": {
+      "word": "бутылка",
+      "meaning": "bottle"
+    },
+    "kk": {
+      "word": "бөтелке",
+      "meaning": "bottle"
+    }
+  },
+  "g5": {
+    "es": {
+      "word": "un mango",
+      "meaning": "a mango"
+    },
+    "zh": {
+      "word": "一个芒果",
+      "meaning": "a mango"
+    },
+    "ru": {
+      "word": "манго",
+      "meaning": "mango"
+    },
+    "kk": {
+      "word": "мамық",
+      "meaning": "mango"
+    }
+  },
+  "g6": {
+    "es": {
+      "word": "la tetera eléctrica",
+      "meaning": "the electric kettle"
+    },
+    "zh": {
+      "word": "一个电水壶",
+      "meaning": "an electric kettle"
+    },
+    "ru": {
+      "word": "чайник",
+      "meaning": "kettle"
+    },
+    "kk": {
+      "word": "су қайнатқыш",
+      "meaning": "electric kettle"
+    }
+  },
+  "g7": {
+    "es": {
+      "word": "una naranja",
+      "meaning": "an orange"
+    },
+    "zh": {
+      "word": "一个葡萄柚",
+      "meaning": "a grapefruit"
+    },
+    "ru": {
+      "word": "гранат",
+      "meaning": "pomegranate"
+    },
+    "kk": {
+      "word": "грейпфрут",
+      "meaning": "grapefruit"
+    }
+  }
+}

@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3efe2">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon-64.png">
+<link rel="apple-touch-icon" href="/assets/lumi-mark.png">
+<title>Lumi — Learn the words all around you</title>
+<meta name="description" content="Point your phone at anything. Lumi names it in the language you're learning, cuts it out as a sticker, and keeps it in a collection you can flip and review.">
+<meta property="og:title" content="Lumi — Learn the words all around you">
+<meta property="og:description" content="Point your phone at anything. Lumi names it in the language you're learning and keeps it as a flippable card.">
+<meta property="og:image" content="https://lumiwords.com/assets/nature/hero-meadow.jpg">
+<meta property="og:url" content="https://lumiwords.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Serif+SC:wght@500&family=Noto+Serif+JP:wght@500&family=Noto+Serif+KR:wght@500&display=swap" rel="stylesheet">
+<style>
+/* ————— Lumi landing v3 — one calm voice, demo up front ————— */
+:root{
+  --paper:#f3efe2; --paper-2:#ece7d3; --paper-3:#e3ddc4;
+  --ink:#22301f; --ink-2:#3d4a34; --ink-soft:#57614a;
+  --moss:#4a5d3a; --leaf:#87a06a; --sage:#aebfa0;
+  --butter:#e0af35; --butter-2:#edc95f; --cream:#faf7ec;
+  --line:rgba(34,48,31,.16);
+  --serif:'Fraunces','Noto Serif SC','Noto Serif JP','Noto Serif KR',serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{overflow-x:clip}
+body{
+  font-family:'Hanken Grotesk',sans-serif;color:var(--ink);
+  background-color:var(--paper);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.13 0 0 0 0 0.18 0 0 0 0 0.12 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--butter);color:var(--ink)}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+
+/* ————— nav ————— */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:70;display:flex;align-items:center;justify-content:space-between;
+  padding:14px clamp(16px,4vw,44px);transition:background .35s,box-shadow .35s;
+}
+nav.solid{background:rgba(243,239,226,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 1px 0 var(--line)}
+.mark{display:flex;align-items:center;gap:9px;font-family:var(--serif);font-weight:600;font-size:22px;letter-spacing:-.4px}
+.mark img{width:26px;height:26px;object-fit:contain}
+nav .links{display:flex;align-items:center;gap:4px}
+.navlink{font-size:14px;font-weight:600;padding:9px 13px;border-radius:12px;color:var(--ink-2)}
+.navlink:hover{color:var(--ink)}
+.navcta{
+  display:inline-flex;align-items:center;gap:8px;margin-left:8px;padding:10px 19px;border-radius:30px;
+  background:var(--ink);color:var(--cream);font-weight:600;font-size:14px;transition:transform .18s ease,background .18s;
+}
+.navcta:hover{transform:translateY(-1px);background:var(--moss)}
+nav:not(.solid) .navlink{color:#f4f1e4;text-shadow:0 1px 8px rgba(15,25,12,.66)}
+nav:not(.solid) .navlink:hover{color:#fff}
+nav:not(.solid) .mark{color:var(--cream);text-shadow:0 1px 12px rgba(15,25,12,.6)}
+nav:not(.solid) .navcta{background:rgba(250,247,236,.95);color:var(--ink)}
+@media(max-width:700px){ nav .links .navlink{display:none} }
+
+/* ————— hero — copy + live demo, first thing you see ————— */
+.hero{position:relative;overflow:hidden;background:#25301e}
+.hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 62%;filter:brightness(.88) saturate(1.02)}
+.hero::before{
+  content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg, rgba(21,30,16,.5) 0%, rgba(21,30,16,.28) 34%, rgba(21,30,16,.38) 62%, rgba(20,29,15,.8) 100%);
+}
+.hero-grid{
+  position:relative;z-index:2;max-width:1120px;margin:0 auto;
+  display:grid;grid-template-columns:1.1fr auto;gap:clamp(28px,5vw,72px);align-items:center;
+  padding:calc(env(safe-area-inset-top) + 106px) clamp(18px,5vw,64px) clamp(40px,6vh,72px);
+  min-height:100svh;
+}
+.h1{
+  font-family:var(--serif);font-weight:500;color:#fdfbf1;
+  font-size:clamp(40px,4.9vw,68px);line-height:1.04;letter-spacing:-.02em;
+  text-shadow:0 2px 10px rgba(10,16,8,.55), 0 8px 40px rgba(10,16,8,.5);
+}
+.hero-sub{margin-top:20px;max-width:440px;font-size:16.5px;font-weight:500;line-height:1.55;color:#faf8ee;text-shadow:0 1px 6px rgba(10,16,8,.7)}
+.hero-ctas{display:flex;align-items:center;gap:14px;margin-top:28px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;padding:16px 28px;border-radius:34px;
+  background:var(--butter);color:#241c05;font-weight:700;font-size:16px;
+  box-shadow:0 18px 44px -14px rgba(10,16,8,.55);transition:transform .18s ease,background .18s;
+}
+.btn:hover{transform:translateY(-2px);background:var(--butter-2)}
+.btn .arr{transition:transform .18s}
+.btn:hover .arr{transform:translateX(3px)}
+.btn-ghost{
+  display:inline-flex;align-items:center;gap:9px;padding:15px 24px;border-radius:34px;font-weight:600;font-size:15px;
+  color:#fdfbf1;border:1.5px solid rgba(250,247,236,.7);background:rgba(24,33,18,.28);transition:border-color .18s,background .18s;
+}
+.btn-ghost:hover{border-color:#fff;background:rgba(24,33,18,.45)}
+@media(max-width:880px){
+  .hero-grid{grid-template-columns:1fr;justify-items:center;text-align:center;gap:36px;min-height:0;
+    padding-top:calc(env(safe-area-inset-top) + 96px)}
+  .hero-sub{margin-left:auto;margin-right:auto}
+  .hero-ctas{justify-content:center}
+}
+/* floating word-chips pinned to the hero photo */
+.chip{
+  position:absolute;z-index:6;display:flex;flex-direction:column;gap:1px;align-items:flex-start;
+  padding:9px 15px 8px;border-radius:15px;background:rgba(252,250,240,.97);
+  box-shadow:0 12px 30px -10px rgba(15,25,12,.5);
+  opacity:0;transform:translateY(14px) scale(.9);
+}
+.chip .w{font-family:var(--serif);font-weight:500;font-size:19px;letter-spacing:-.2px;color:var(--ink);line-height:1.1}
+.chip .m{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft)}
+.chip::after{
+  content:"";position:absolute;left:-5px;top:50%;width:9px;height:9px;border-radius:50%;
+  background:var(--butter);border:2px solid rgba(250,247,236,.95);transform:translateY(-50%);
+}
+.hero.play .chip{animation:chipIn .9s cubic-bezier(.2,1.1,.3,1) forwards}
+@keyframes chipIn{to{opacity:1;transform:translateY(0) scale(1)}}
+/* chips are playful: hover lifts them with a little spring */
+.chip{cursor:pointer;transition:transform .4s cubic-bezier(.3,1.6,.4,1),box-shadow .4s ease}
+.hero.play .chip.in{animation:none;opacity:1;transform:none}
+.hero.play .chip.in:hover{transform:translateY(-8px) rotate(-3deg) scale(1.08);box-shadow:0 22px 44px -12px rgba(15,25,12,.6)}
+.hero.play .chip.in:hover::after{background:var(--butter-2)}
+.chip.c1{top:11%;left:44%}
+.chip.c2{top:12%;left:5%}
+.chip.c3{top:57%;left:50%}
+.hero.play .chip.c1{animation-delay:.7s}
+.hero.play .chip.c2{animation-delay:1.3s}
+.hero.play .chip.c3{animation-delay:1.9s}
+@media(max-width:880px){
+  .chip{display:none}
+}
+
+/* ————— the looping phone demo (lives in the hero) ————— */
+.phone{
+  position:relative;width:272px;height:552px;border-radius:46px;padding:10px;
+  background:#1c2616;box-shadow:0 34px 70px -26px rgba(10,18,6,.65), 0 0 0 1px rgba(250,247,236,.14);
+}
+.pscreen{
+  position:relative;width:100%;height:100%;border-radius:37px;overflow:hidden;
+  background:linear-gradient(180deg,#eef0e2 0%,#e4e6d2 40%,#cfd6b4 78%,#b9c496 100%);
+}
+.ptop{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:15px 15px 0}
+.ptop .plogo{display:inline-flex;align-items:center;gap:5px;font-family:var(--serif);font-weight:600;font-size:16px;color:var(--ink)}
+.ptop .plogo img{width:17px;height:17px;object-fit:contain}
+.ptop .pdots{display:flex;gap:7px}
+.ptop .pdots span{width:25px;height:25px;border-radius:50%;background:rgba(252,250,240,.8);border:1px solid rgba(34,48,31,.1)}
+.shot{position:absolute;top:72px;left:50%;transform:translateX(-50%);width:210px;height:162px;z-index:2}
+.scanframe{position:absolute;inset:0;border-radius:24px;overflow:hidden;box-shadow:0 18px 42px -12px rgba(35,45,30,.5);opacity:0;animation:demoFrame 10.5s ease-in-out infinite}
+.scanframe .spin{position:absolute;width:200%;height:200%;left:-50%;top:-50%;animation:lumiSpin 1.15s linear infinite;background:conic-gradient(from 0deg, transparent 0deg, transparent 248deg, rgba(255,255,255,.55) 300deg, #fff 322deg, rgba(255,255,255,.35) 344deg, transparent 360deg)}
+.scanframe .ph2{position:absolute;inset:4px;border-radius:20px;background:#cdd2c3 url('/assets/demo-photo.jpg') center/cover}
+.scanframe .hair{position:absolute;inset:4px;border-radius:20px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+.cutwrap{position:absolute;left:50%;top:50%;z-index:3;opacity:0;transform:translate(-50%,-50%);animation:demoCut 10.5s ease-in-out infinite}
+.cutwrap .cut{display:block;max-width:168px;max-height:196px;width:auto;height:auto;
+  filter:drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 14px 20px rgba(35,45,30,.45))}
+.dcard{
+  position:absolute;left:13px;right:13px;bottom:15px;z-index:5;border-radius:22px;background:rgba(252,250,240,.97);
+  border:1px solid rgba(34,48,31,.08);box-shadow:0 22px 44px -18px rgba(25,35,20,.45);padding:15px 15px 13px;
+  animation:demoCard 10.5s ease-in-out infinite;
+}
+.dcard .pover{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:5px}
+.dcard .pword{font-family:var(--serif);font-weight:500;font-size:27px;letter-spacing:-.8px;line-height:1;display:flex;justify-content:space-between;align-items:center;color:var(--ink)}
+.dcard .pword .note{width:29px;height:29px;border-radius:50%;border:1.5px solid rgba(34,48,31,.25);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink-soft)}
+.dcard .pmean{font-size:13px;color:var(--ink-soft);font-weight:600;margin-top:3px}
+.dcard .pex{font-family:var(--serif);font-size:12.5px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(34,48,31,.12);color:var(--ink-2)}
+.dcard .pbtns{display:flex;gap:8px;margin-top:12px}
+.dcard .pbtns .a{flex:1;height:37px;border-radius:19px;background:var(--ink);color:var(--cream);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.dcard .pbtns .b{height:37px;padding:0 14px;border-radius:19px;border:1.5px solid rgba(34,48,31,.3);display:flex;align-items:center;font-size:12px;font-weight:700;color:var(--ink-2)}
+.savedchip{position:absolute;bottom:22px;left:50%;z-index:6;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:30px;
+  background:rgba(24,33,18,.92);color:#fff;font-size:11.5px;font-weight:600;white-space:nowrap;box-shadow:0 10px 24px -8px rgba(0,0,0,.45);
+  opacity:0;transform:translateX(-50%);animation:demoSaved 10.5s ease-in-out infinite}
+.pgridd{position:absolute;top:58px;left:13px;right:13px;bottom:13px;z-index:4;display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:112px;gap:10px;opacity:0;align-content:start;animation:demoGrid 10.5s ease-in-out infinite}
+.jcard{position:relative;perspective:900px}
+.jcard.ph{border-radius:18px;background:rgba(252,250,240,.5);border:1px solid rgba(252,250,240,.75)}
+.jinner{position:absolute;inset:0;transform-style:preserve-3d}
+.jcard.new .jinner{animation:demoFlip 10.5s ease-in-out infinite}
+.jcard.new .jface.front{animation:demoFaceF 10.5s ease-in-out infinite}
+.jcard.new .jface.back{animation:demoFaceB 10.5s ease-in-out infinite}
+.jface{position:absolute;inset:0;border-radius:18px;background:rgba(252,250,240,.96);border:1px solid rgba(34,48,31,.08);box-shadow:0 10px 24px -12px rgba(30,40,25,.4);-webkit-backface-visibility:hidden;backface-visibility:hidden;display:flex;flex-direction:column;overflow:hidden}
+.jface.front{align-items:center;justify-content:center;gap:6px;padding:8px}
+.jface.front img{max-width:60px;max-height:56px;width:auto;height:auto;filter:drop-shadow(1.4px 0 0 #fff) drop-shadow(-1.4px 0 0 #fff) drop-shadow(0 1.4px 0 #fff) drop-shadow(0 -1.4px 0 #fff)}
+.jface.front .jword{font-family:var(--serif);font-weight:500;font-size:15px;letter-spacing:-.3px;color:var(--ink);text-align:center;line-height:1.04}
+.jface.front .tag{position:absolute;top:6px;left:6px;background:var(--butter);color:#241c05;font-size:8px;font-weight:800;letter-spacing:.5px;padding:2px 6px;border-radius:7px}
+.jface.back{transform:rotateY(180deg);align-items:flex-start;justify-content:center;gap:1px;padding:11px 12px}
+.jface.back .jlabel{font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-soft)}
+.jface.back .jmean{font-family:var(--serif);font-size:16px;font-weight:500;color:var(--ink);line-height:1;margin-top:2px}
+.jface.back .jdiv{align-self:stretch;height:1px;background:rgba(34,48,31,.12);margin:5px 0}
+.jface.back .jex{font-family:var(--serif);font-size:10.5px;line-height:1.32;color:var(--ink-2)}
+.jface.back .jext{font-size:8.5px;line-height:1.28;color:var(--ink-soft);margin-top:2px}
+@keyframes lumiSpin{to{transform:rotate(360deg)}}
+@keyframes demoFrame{0%,4%{opacity:0}9%,36%{opacity:1}43%,100%{opacity:0}}
+@keyframes demoCut{0%,37%{opacity:0;transform:translate(-50%,-50%) scale(.84)}44%{opacity:1;transform:translate(-50%,-50%) scale(1.03)}49%,60%{opacity:1;transform:translate(-50%,-50%) scale(1)}66%{opacity:0;transform:translate(-50%,-38%) scale(.4)}100%{opacity:0;transform:translate(-50%,-50%) scale(.84)}}
+@keyframes demoCard{0%,42%{transform:translateY(140%);opacity:0}50%,60%{transform:translateY(0);opacity:1}67%{transform:translateY(60%) scale(.92);opacity:0}100%{transform:translateY(140%);opacity:0}}
+@keyframes demoGrid{0%,60%{opacity:0;transform:scale(.97)}68%,96%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.98)}}
+@keyframes demoSaved{0%,64%{opacity:0;transform:translateX(-50%) translateY(12px)}69%,79%{opacity:1;transform:translateX(-50%) translateY(0)}84%,100%{opacity:0;transform:translateX(-50%) translateY(12px)}}
+@keyframes demoFlip{0%,74%{transform:rotateY(0deg)}82%,100%{transform:rotateY(180deg)}}
+@keyframes demoFaceF{0%,77%{opacity:1}80%,100%{opacity:0}}
+@keyframes demoFaceB{0%,77%{opacity:0}80%,100%{opacity:1}}
+
+/* ————— shared section chrome ————— */
+section{position:relative;padding:clamp(72px,10vh,120px) clamp(18px,5vw,64px)}
+.wrap{max-width:1120px;margin:0 auto}
+h2{font-family:var(--serif);font-weight:500;font-size:clamp(32px,4.2vw,50px);line-height:1.06;letter-spacing:-.02em}
+.lead{margin-top:16px;font-size:16.5px;line-height:1.6;color:var(--ink-2);max-width:520px}
+
+/* reveal on scroll */
+.rv{opacity:0;transform:translateY(26px)}
+.rv.on{opacity:1;transform:none;transition:opacity .75s ease,transform .75s cubic-bezier(.16,.84,.3,1)}
+.rv.d1.on{transition-delay:.08s}.rv.d2.on{transition-delay:.18s}.rv.d3.on{transition-delay:.28s}
+
+/* ————— how it works ————— */
+#how{background:var(--paper)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(18px,3vw,38px);margin-top:52px}
+.step{position:relative}
+.snap{
+  position:relative;background:var(--cream);padding:12px 12px 12px;border-radius:4px;
+  box-shadow:0 1px 2px rgba(34,48,31,.12), 0 22px 44px -18px rgba(34,48,31,.32);
+  transition:transform .3s ease;
+}
+.step:nth-child(1) .snap{transform:rotate(-1.6deg)}
+.step:nth-child(2) .snap{transform:rotate(1.1deg)}
+.step:nth-child(3) .snap{transform:rotate(-.9deg)}
+.step:hover .snap{transform:rotate(0) translateY(-6px)}
+.snap .ph{position:relative;aspect-ratio:4/4.2;overflow:hidden;background:var(--paper-3)}
+.snap .ph img.photo{width:100%;height:100%;object-fit:cover}
+.tape{
+  position:absolute;top:-13px;left:50%;width:92px;height:26px;transform:translateX(-50%) rotate(-3deg);z-index:2;
+  background:linear-gradient(100deg,rgba(224,175,53,.42),rgba(237,201,95,.58));
+  box-shadow:0 2px 6px rgba(34,48,31,.15);border-left:1px dashed rgba(255,255,255,.5);border-right:1px dashed rgba(255,255,255,.5);
+}
+.stepno{
+  position:absolute;top:-22px;left:-8px;z-index:3;font-family:var(--serif);font-weight:300;
+  font-size:56px;color:var(--butter);text-shadow:0 2px 0 rgba(34,48,31,.1);
+}
+.step h3{font-family:var(--serif);font-weight:500;font-size:22px;margin-top:22px;letter-spacing:-.2px}
+.step p{margin-top:8px;font-size:15px;line-height:1.55;color:var(--ink-2);max-width:310px}
+.camball{position:absolute;right:12px;bottom:12px;width:46px;height:46px;border-radius:50%;background:rgba(252,250,240,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 22px -8px rgba(15,25,12,.4)}
+.snap .ph.cutbg{display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#e9ead9,#dfe2cc)}
+.snap .ph.cutbg img.cut{max-width:78%;max-height:74%;width:auto;height:auto;object-fit:contain;
+  filter:drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 14px 18px rgba(35,45,30,.35))}
+.snap .minichip{
+  position:absolute;left:12px;bottom:12px;background:rgba(252,250,240,.97);border-radius:12px;padding:7px 13px 6px;
+  box-shadow:0 10px 24px -8px rgba(15,25,12,.35);
+}
+.snap .minichip .w{font-family:var(--serif);font-size:16.5px;font-weight:500;color:var(--ink)}
+.snap .minichip .m{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+/* step 3: a real collection card, just like in the app */
+.realcard{
+  width:72%;max-width:200px;aspect-ratio:212/278;border-radius:24px;background:var(--cream);
+  border:1px solid rgba(34,48,31,.09);box-shadow:0 18px 40px -18px rgba(30,40,25,.45);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px 14px;position:relative;
+}
+.realcard img{max-width:76%;max-height:54%;width:auto;height:auto;
+  filter:drop-shadow(1.8px 0 0 #fff) drop-shadow(-1.8px 0 0 #fff) drop-shadow(0 1.8px 0 #fff) drop-shadow(0 -1.8px 0 #fff) drop-shadow(0 12px 16px rgba(35,45,30,.35))}
+.realcard .w{font-family:var(--serif);font-weight:500;font-size:20px;letter-spacing:-.3px;color:var(--ink);line-height:1.05}
+.realcard .spk{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;border:1.5px solid rgba(34,48,31,.22);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-soft)}
+@media(max-width:820px){
+  .steps{grid-template-columns:1fr;max-width:420px;margin-left:auto;margin-right:auto;gap:46px}
+}
+
+/* ————— the collection — flippable cards ————— */
+#cards{background:var(--paper-2)}
+#cards .head{text-align:center;max-width:640px;margin:0 auto}
+#cards .lead{margin-left:auto;margin-right:auto}
+.langpick{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:30px}
+.lp{padding:9px 18px;border-radius:30px;background:var(--cream);border:1px solid var(--line);color:var(--ink-2);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+.lp.on{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+.lcar{position:relative;width:100vw;margin-left:calc(50% - 50vw);margin-top:28px;overflow:hidden;padding:16px 0 8px}
+.ltrack{display:flex;gap:18px;width:max-content;will-change:transform}
+.lcard{flex:0 0 auto;width:212px;height:298px;perspective:1200px;cursor:pointer}
+.lcardin{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.9,.3,1)}
+.lcard.flip .lcardin{transform:rotateY(180deg)}
+.lface{position:absolute;inset:0;border-radius:24px;background:var(--cream);border:1px solid rgba(34,48,31,.09);box-shadow:0 18px 40px -20px rgba(30,40,25,.45);-webkit-backface-visibility:hidden;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 18px;overflow:hidden;transition:opacity .35s}
+.lfront{gap:12px}
+.lfront img{max-width:130px;max-height:132px;width:auto;height:auto;filter:drop-shadow(1.8px 0 0 #fff) drop-shadow(-1.8px 0 0 #fff) drop-shadow(0 1.8px 0 #fff) drop-shadow(0 -1.8px 0 #fff) drop-shadow(0 12px 16px rgba(35,45,30,.35))}
+.lfront .lw{font-family:var(--serif);font-weight:500;font-size:22px;letter-spacing:-.4px;color:var(--ink);text-align:center;line-height:1.06}
+.lback{transform:rotateY(180deg);gap:8px;text-align:center}
+.lback .lq{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+.lback .lm{font-family:var(--serif);font-size:23px;font-weight:500;color:var(--ink);line-height:1.02}
+.lback .ldiv{width:42px;height:1px;background:var(--line);margin:5px 0}
+.lback .lx{font-family:var(--serif);font-size:13.5px;line-height:1.42;color:var(--ink-2)}
+.lback .lxt{font-size:11.5px;line-height:1.36;color:var(--ink-soft);margin-top:3px}
+.lcard .lfront{opacity:1}.lcard .lback{opacity:0}
+.lcard.flip .lfront{opacity:0}.lcard.flip .lback{opacity:1}
+@media(max-width:640px){.lcard{width:188px;height:268px}}
+
+/* ————— languages ————— */
+#langs{background:var(--paper)}
+.langgrid{margin-top:46px;display:flex;flex-wrap:wrap;border-top:1px solid var(--line)}
+.lang{
+  flex:1 1 25%;min-width:210px;padding:26px 20px 24px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;gap:3px;position:relative;transition:background .2s;
+}
+.lang:hover{background:var(--cream)}
+.lang .native{font-family:var(--serif);font-size:24px;font-weight:500;letter-spacing:-.2px}
+.lang .en{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
+@media(max-width:540px){ .lang{min-width:46%} .lang .native{font-size:20px} }
+
+/* ————— pricing ————— */
+#pricing{background:var(--paper-2)}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(18px,2.6vw,32px);margin-top:52px;align-items:stretch}
+.pcard{
+  position:relative;background:var(--cream);border-radius:6px;padding:clamp(24px,3vw,34px);
+  box-shadow:0 1px 2px rgba(34,48,31,.12), 0 26px 50px -22px rgba(34,48,31,.35);
+  border:1px solid rgba(34,48,31,.08);display:flex;flex-direction:column;
+}
+.pcard.pro{background:linear-gradient(165deg,#2c3a24,#22301f);color:var(--cream);border:none}
+.pcard .pk{font-size:11px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-soft)}
+.pcard.pro .pk{color:var(--sage)}
+.pcard .pp{font-family:var(--serif);font-weight:400;font-size:46px;letter-spacing:-.03em;margin-top:10px;line-height:1;color:var(--ink)}
+.pcard.pro .pp{color:var(--cream)}
+.pcard .pp span{font-size:16px;color:var(--ink-soft);font-family:'Hanken Grotesk',sans-serif;font-weight:600}
+.pcard.pro .pp span{color:var(--sage)}
+.pcard .ppsub{margin-top:5px;font-size:13.5px;font-weight:600;color:var(--ink-soft)}
+.pcard.pro .ppsub{color:var(--butter-2)}
+.pfeat{list-style:none;margin:22px 0 26px;display:flex;flex-direction:column;gap:10px;flex:1}
+.pfeat li{display:flex;gap:10px;align-items:baseline;font-size:14.5px;line-height:1.4;color:var(--ink-2)}
+.pfeat li::before{content:"✳";color:#c2921d;font-size:13px;flex:0 0 auto}
+.pcard.pro .pfeat li{color:rgba(250,247,236,.93)}
+.pcard.pro .pfeat li::before{color:var(--butter)}
+.pbtn{
+  display:flex;align-items:center;justify-content:center;gap:9px;height:52px;border-radius:30px;
+  font-weight:700;font-size:15px;transition:transform .18s,background .18s;
+}
+.pbtn:hover{transform:translateY(-2px)}
+.pbtn.solid{background:var(--butter);color:#241c05}
+.pbtn.solid:hover{background:var(--butter-2)}
+.pbtn.ghost{border:1.5px solid rgba(34,48,31,.35);color:var(--ink)}
+.pbtn.ghost:hover{background:var(--paper)}
+.pbadge{
+  position:absolute;top:-13px;left:24px;background:var(--butter);color:#241c05;
+  font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;border-radius:16px;
+  box-shadow:0 8px 18px -6px rgba(34,48,31,.4);
+}
+@media(max-width:900px){ .pgrid{grid-template-columns:1fr;max-width:420px} }
+
+/* ————— closing CTA ————— */
+#closing{position:relative;overflow:hidden;padding:0;background:#242e1c}
+#closing .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 42%;filter:brightness(.85)}
+#closing::before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(19,26,15,.5),rgba(19,26,15,.28) 45%,rgba(19,26,15,.5) 76%,rgba(19,26,15,.9))}
+#closing .inner{position:relative;z-index:2;min-height:58vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:90px 22px 70px}
+#closing h2{color:#fdfbf1;text-shadow:0 2px 10px rgba(10,16,8,.6), 0 8px 40px rgba(10,16,8,.5)}
+#closing .btn{margin-top:30px}
+
+/* ————— footer — rests on the closing photo ————— */
+.ifoot{
+  position:relative;z-index:2;max-width:1120px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:26px clamp(18px,5vw,64px) 30px;border-top:1px solid rgba(250,247,236,.28);
+}
+.ifoot .fleft{display:flex;align-items:center;gap:10px}
+.ifoot .mark{color:var(--cream);text-shadow:0 1px 10px rgba(10,16,8,.6)}
+.ifoot .tag{font-size:13.5px;color:rgba(250,247,236,.82);font-weight:500;text-shadow:0 1px 6px rgba(10,16,8,.6)}
+.ifoot .fright{display:flex;align-items:center;gap:18px;font-size:13.5px;font-weight:600;color:rgba(250,247,236,.92)}
+.ifoot .fright a{text-shadow:0 1px 6px rgba(10,16,8,.6)}
+.ifoot .fright a:hover{color:#fff}
+
+@media (prefers-reduced-motion: reduce){
+  .scanframe,.scanframe .spin,.cutwrap,.dcard,.savedchip,.pgridd,.jcard.new .jinner,.jcard.new .jface.front,.jcard.new .jface.back{animation:none!important}
+  .scanframe{opacity:1}
+  html{scroll-behavior:auto}
+  .rv{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <a class="mark" href="/"><img src="/assets/lumi-mark.png" alt="">Lumi</a>
+  <div class="links">
+    <a class="navlink" href="#how">How it works</a>
+    <a class="navlink" href="#cards">The collection</a>
+    <a class="navlink" href="#pricing">Pricing</a>
+    <a class="navcta" href="/app">Open app <span>→</span></a>
+  </div>
+</nav>
+
+<!-- ————— HERO — copy + live demo ————— -->
+<header class="hero" id="hero">
+  <img class="hero-img" src="/assets/nature/hero-meadow.jpg" alt="A meadow with tall grass, a pond and mountains at dusk" fetchpriority="high">
+
+  <div class="chip c1"><span class="w">таулар</span><span class="m">mountains</span></div>
+  <div class="chip c2"><span class="w">el cielo</span><span class="m">sky</span></div>
+  <div class="chip c3"><span class="w">l&rsquo;étang</span><span class="m">pond</span></div>
+
+  <div class="hero-grid">
+    <div class="hero-copy">
+      <h1 class="h1">Learn the words<br>all around you.</h1>
+      <p class="hero-sub">Point your phone at anything. Lumi names it in the language you're learning, cuts it out as a sticker, and keeps it as a card you can flip, hear, and review.</p>
+      <div class="hero-ctas">
+        <a class="btn" href="/app">Try Lumi <span class="arr">→</span></a>
+        <a class="btn-ghost" href="#how">How it works</a>
+      </div>
+    </div>
+
+    <!-- looping demo, mirrors the real app: photo → scan → cut-out → named card → collection -->
+    <div class="phone">
+      <div class="pscreen">
+        <div class="ptop"><span class="plogo"><img src="/assets/lumi-mark.png" alt="">Lumi</span><span class="pdots"><span></span><span></span></span></div>
+
+        <div class="shot">
+          <div class="scanframe"><div class="spin"></div><div class="ph2"></div><div class="hair"></div></div>
+          <div class="cutwrap"><img class="cut" src="/assets/demo-cutout.png" alt="The duck, lifted out of its photo" decoding="async"></div>
+        </div>
+
+        <div class="dcard">
+          <div class="pover">A new word</div>
+          <div class="pword"><span class="w">un pato</span> <span class="note">♪</span></div>
+          <div class="pmean">a duck</div>
+          <div class="pex">El pato nada en el lago.</div>
+          <div class="pbtns"><span class="a">Save to collection</span><span class="b">Retake</span></div>
+        </div>
+
+        <div class="savedchip">✓ Saved to collection</div>
+
+        <div class="pgridd" aria-hidden="true">
+          <div class="jcard new">
+            <div class="jinner">
+              <div class="jface front"><span class="tag">NEW</span><img src="/assets/demo-cutout.png" alt=""><div class="jword">un pato</div></div>
+              <div class="jface back"><div class="jlabel">Means</div><div class="jmean">a duck</div><div class="jdiv"></div><div class="jex">El pato nada en el lago.</div><div class="jext">The duck swims in the lake.</div></div>
+            </div>
+          </div>
+          <div class="jcard ph"></div>
+          <div class="jcard ph"></div>
+          <div class="jcard ph"></div>
+          <div class="jcard ph"></div>
+          <div class="jcard ph"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ————— HOW IT WORKS ————— -->
+<section id="how">
+  <div class="wrap">
+    <h2 class="rv">How it works</h2>
+    <p class="lead rv d1">Three steps, a few seconds. Your world is the textbook.</p>
+
+    <div class="steps">
+      <div class="step rv d1">
+        <div class="snap"><span class="tape"></span><span class="stepno">1</span>
+          <div class="ph">
+            <img class="photo" src="/assets/how-photo.jpg" alt="Pointing the phone at a flower" loading="lazy">
+            <div class="camball"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22301f" stroke-width="1.7"><rect x="3" y="6.5" width="18" height="13" rx="3"/><circle cx="12" cy="13" r="3.4"/><path d="M9 6.5l1.2-2h3.6L15 6.5"/></svg></div>
+          </div>
+        </div>
+        <h3>Point &amp; capture</h3>
+        <p>Open the camera and snap any object around you — a cup, a plant, a flower on the street.</p>
+      </div>
+      <div class="step rv d2">
+        <div class="snap"><span class="tape"></span><span class="stepno">2</span>
+          <div class="ph cutbg">
+            <img class="cut" src="/assets/how-cutout.png" alt="The flower cut out as a sticker" loading="lazy">
+            <div class="minichip"><div class="w">una flor</div><div class="m">a flower</div></div>
+          </div>
+        </div>
+        <h3>Named &amp; cut out</h3>
+        <p>Lumi identifies it, names it in your language with a meaning and example — and lifts it out as a clean sticker.</p>
+      </div>
+      <div class="step rv d3">
+        <div class="snap"><span class="tape"></span><span class="stepno">3</span>
+          <div class="ph cutbg">
+            <div class="realcard">
+              <span class="spk">♪</span>
+              <img src="/assets/how-cutout.png" alt="The flower card in the collection" loading="lazy">
+              <div class="w">una flor</div>
+            </div>
+          </div>
+        </div>
+        <h3>Collect &amp; review</h3>
+        <p>Every word becomes a card in your collection — flip it between word and meaning any time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ————— THE COLLECTION ————— -->
+<section id="cards">
+  <div class="wrap">
+    <div class="head">
+      <h2 class="rv">The collection</h2>
+      <p class="lead rv d1">Real cards from real objects — in every language you're learning. Pick one, tap a card to flip it:</p>
+      <div class="langpick rv d1" id="langpick">
+        <button class="lp on" data-lang="es">Español</button>
+        <button class="lp" data-lang="fr">Français</button>
+        <button class="lp" data-lang="de">Deutsch</button>
+        <button class="lp" data-lang="zh">中文</button>
+        <button class="lp" data-lang="ja">日本語</button>
+        <button class="lp" data-lang="ko">한국어</button>
+        <button class="lp" data-lang="ru">Русский</button>
+        <button class="lp" data-lang="kk">Қазақша</button>
+      </div>
+    </div>
+    <div class="lcar rv" id="lcar">
+      <div class="ltrack" id="ltrack"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ————— LANGUAGES ————— -->
+<section id="langs">
+  <div class="wrap">
+    <h2 class="rv">Twelve languages</h2>
+    <p class="lead rv d1">Including the harder ones most apps skip. Switch anytime — one journal per language.</p>
+    <div class="langgrid rv d1">
+      <div class="lang"><span class="native">Español</span><span class="en">Spanish</span></div>
+      <div class="lang"><span class="native">English</span><span class="en">English</span></div>
+      <div class="lang"><span class="native">Français</span><span class="en">French</span></div>
+      <div class="lang"><span class="native">Italiano</span><span class="en">Italian</span></div>
+      <div class="lang"><span class="native">Deutsch</span><span class="en">German</span></div>
+      <div class="lang"><span class="native">Português</span><span class="en">Portuguese</span></div>
+      <div class="lang"><span class="native">日本語</span><span class="en">Japanese</span></div>
+      <div class="lang"><span class="native">한국어</span><span class="en">Korean</span></div>
+      <div class="lang"><span class="native">中文</span><span class="en">Chinese</span></div>
+      <div class="lang"><span class="native">Русский</span><span class="en">Russian</span></div>
+      <div class="lang"><span class="native">Қазақша</span><span class="en">Kazakh</span></div>
+      <div class="lang"><span class="native">Türkçe</span><span class="en">Turkish</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ————— PRICING ————— -->
+<section id="pricing">
+  <div class="wrap">
+    <h2 class="rv">Pricing</h2>
+    <p class="lead rv d1">Collect your first 5 words free — no sign-up needed. Go Pro when you're ready for more. Cancel anytime.</p>
+
+    <div class="pgrid">
+      <div class="pcard free rv d1">
+        <div class="pk">Free</div>
+        <div class="pp">$0</div>
+        <div class="ppsub">to get started</div>
+        <ul class="pfeat">
+          <li>5 words to collect — no sign-up</li>
+          <li>All 12 languages</li>
+          <li>Photo → sticker → flip card</li>
+          <li>Sign up free to save them</li>
+        </ul>
+        <a class="pbtn ghost" href="/app">Start free</a>
+      </div>
+
+      <div class="pcard mo rv d2">
+        <div class="pk">Pro · Monthly</div>
+        <div class="pp">$4.99 <span>/month</span></div>
+        <div class="ppsub">cancel anytime</div>
+        <ul class="pfeat">
+          <li>Unlimited words, every language</li>
+          <li>Native pronunciation for each card</li>
+          <li>Review mode that plans itself</li>
+          <li>Synced across your devices</li>
+        </ul>
+        <a class="pbtn ghost" id="buyMonthly" href="/app">Go Pro — monthly</a>
+      </div>
+
+      <div class="pcard pro rv d3">
+        <span class="pbadge">Best value · Save 33%</span>
+        <div class="pk">Pro · Yearly</div>
+        <div class="pp">$39.99 <span>/year</span></div>
+        <div class="ppsub">just $3.33/mo · 2 months free</div>
+        <ul class="pfeat">
+          <li>Everything in monthly</li>
+          <li>One quiet payment a year</li>
+          <li>Best for building the habit</li>
+          <li>Keep every word you collect</li>
+        </ul>
+        <a class="pbtn solid" id="buyAnnual" href="/app">Go Pro — yearly</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ————— CLOSING ————— -->
+<section id="closing">
+  <img class="bg" src="/assets/nature/deer.jpg" alt="Two deer resting at the edge of a forest" loading="lazy">
+  <div class="inner">
+    <h2 class="rv">Start your collection today</h2>
+    <a class="btn rv d2" href="/app">Try Lumi <span class="arr">→</span></a>
+  </div>
+
+  <!-- footer, resting on the photo -->
+  <footer class="ifoot">
+    <div class="fleft">
+      <a class="mark" href="/"><img src="/assets/lumi-mark.png" alt="">Lumi</a>
+      <span class="tag">Learn the words all around you</span>
+    </div>
+    <div class="fright">
+      <a href="/app">Open app →</a>
+      <span class="tag">© 2026 Lumi</span>
+    </div>
+  </footer>
+</section>
+
+<script>
+// ——— nav turns solid after the hero
+const nav = document.getElementById('nav');
+const hero = document.getElementById('hero');
+const onScroll = () => { nav.classList.toggle('solid', window.scrollY > hero.offsetHeight - 80); };
+addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+// ——— hero word-chips fade in once, then become hoverable (entrance animation released)
+setTimeout(() => hero.classList.add('play'), 350);
+document.querySelectorAll('.hero .chip').forEach(c => c.addEventListener('animationend', () => c.classList.add('in'), {once:true}));
+
+// ——— reveal on scroll
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target); }
+}), {threshold:.16, rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.rv').forEach(el => io.observe(el));
+
+// ——— the collection: flippable card carousel (real cards from the app)
+(function(){
+  const CARDS = [
+    { img:'/assets/g1.png', en:'amulet', enex:'I carry an amulet for good luck.', es:{w:'un amuleto',ex:'Llevo un amuleto para la buena suerte.'}, zh:{w:'护身符',ex:'我随身携带护身符以求好运。'}, ru:{w:'амулет',ex:'Я ношу с собой амулет на удачу.'}, kk:{w:'тұмар',ex:'Мен сәттілік үшін тұмар ұстаймын.'}, fr:{w:'une amulette',ex:'Je porte une amulette pour la chance.'}, de:{w:'ein Amulett',ex:'Ich trage ein Amulett für Glück.'}, ja:{w:'お守り',ex:'幸運のためにお守りを持っています。'}, ko:{w:'부적',ex:'행운을 위해 부적을 지니고 다녀요.'} },
+    { img:'/assets/g2.png', en:'plant', enex:'The plant is in a white pot.', es:{w:'una planta',ex:'La planta está en una maceta blanca.'}, zh:{w:'植物',ex:'这株植物种在白色花盆里。'}, ru:{w:'растение',ex:'Растение находится в белом горшке.'}, kk:{w:'өсімдік',ex:'Өсімдік ақ құмырада өседі.'}, fr:{w:'une plante',ex:'La plante est dans un pot blanc.'}, de:{w:'eine Pflanze',ex:'Die Pflanze steht in einem weißen Topf.'}, ja:{w:'植物',ex:'植物は白い鉢に入っています。'}, ko:{w:'식물',ex:'식물이 하얀 화분에 있어요.'} },
+    { img:'/assets/g3.png', en:'sushi', enex:'I like to eat sushi.', es:{w:'sushi',ex:'Me gusta comer sushi.'}, zh:{w:'寿司',ex:'我喜欢吃寿司。'}, ru:{w:'суши',ex:'Мне нравится есть суши.'}, kk:{w:'суши',ex:'Маған суши жеген ұнайды.'}, fr:{w:'des sushis',ex:'J\'aime manger des sushis.'}, de:{w:'Sushi',ex:'Ich esse gern Sushi.'}, ja:{w:'寿司',ex:'私は寿司を食べるのが好きです。'}, ko:{w:'초밥',ex:'저는 초밥 먹는 것을 좋아해요.'} },
+    { img:'/assets/g4.png', en:'bottle', enex:'The bottle is on the table.', es:{w:'una botella',ex:'La botella está sobre la mesa.'}, zh:{w:'瓶子',ex:'瓶子在桌子上。'}, ru:{w:'бутылка',ex:'Бутылка стоит на столе.'}, kk:{w:'бөтелке',ex:'Бөтелке үстел үстінде тұр.'}, fr:{w:'une bouteille',ex:'La bouteille est sur la table.'}, de:{w:'eine Flasche',ex:'Die Flasche steht auf dem Tisch.'}, ja:{w:'ボトル',ex:'ボトルはテーブルの上にあります。'}, ko:{w:'병',ex:'병이 탁자 위에 있어요.'} },
+    { img:'/assets/g5.png', en:'mango', enex:'I ate a ripe mango.', es:{w:'un mango',ex:'Me comí un mango maduro.'}, zh:{w:'芒果',ex:'我吃了一个熟透的芒果。'}, ru:{w:'манго',ex:'Я съел спелый манго.'}, kk:{w:'манго',ex:'Мен піскен манго жедім.'}, fr:{w:'une mangue',ex:'J\'ai mangé une mangue mûre.'}, de:{w:'eine Mango',ex:'Ich habe eine reife Mango gegessen.'}, ja:{w:'マンゴー',ex:'熟したマンゴーを食べました。'}, ko:{w:'망고',ex:'저는 잘 익은 망고를 먹었어요.'} },
+    { img:'/assets/g6.png', en:'electric kettle', enex:'The electric kettle boils water quickly.', es:{w:'un hervidor eléctrico',ex:'El hervidor eléctrico hierve el agua rápidamente.'}, zh:{w:'电水壶',ex:'电水壶烧水很快。'}, ru:{w:'электрический чайник',ex:'Электрический чайник быстро кипятит воду.'}, kk:{w:'электрлік шәйнек',ex:'Электрлік шәйнек суды тез қайнатады.'}, fr:{w:'une bouilloire électrique',ex:'La bouilloire électrique fait bouillir l\'eau rapidement.'}, de:{w:'ein Wasserkocher',ex:'Der Wasserkocher kocht das Wasser schnell.'}, ja:{w:'電気ケトル',ex:'電気ケトルはお湯をすぐに沸かします。'}, ko:{w:'전기 주전자',ex:'전기 주전자는 물을 빨리 끓여요.'} },
+    { img:'/assets/g7.png', en:'orange', enex:'I eat an orange in the morning.', es:{w:'una naranja',ex:'Me como una naranja por la mañana.'}, zh:{w:'橙子',ex:'我早上吃一个橙子。'}, ru:{w:'апельсин',ex:'По утрам я ем апельсин.'}, kk:{w:'апельсин',ex:'Мен таңертең апельсин жеймін.'}, fr:{w:'une orange',ex:'Je mange une orange le matin.'}, de:{w:'eine Orange',ex:'Ich esse morgens eine Orange.'}, ja:{w:'オレンジ',ex:'朝にオレンジを食べます。'}, ko:{w:'오렌지',ex:'저는 아침에 오렌지를 먹어요.'} },
+  ];
+  const esc = s => String(s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const lcar=document.getElementById('lcar'), track=document.getElementById('ltrack');
+  if(!lcar||!track) return;
+  let lang='es', offset=0, repW=0, paused=false;
+  const REPS=3, DRIFT=0.3;
+  const hoverable = window.matchMedia('(hover: hover)').matches;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function cardHTML(it){ const d=it[lang]; return '<div class="lcard"><div class="lcardin">'+
+    '<div class="lface lfront"><img src="'+it.img+'" alt="" loading="lazy" decoding="async"><div class="lw">'+esc(d.w)+'</div></div>'+
+    '<div class="lface lback"><div class="lq">Means</div><div class="lm">'+esc(it.en)+'</div><div class="ldiv"></div><div class="lx">'+esc(d.ex)+'</div>'+(it.enex?'<div class="lxt">'+esc(it.enex)+'</div>':'')+'</div>'+
+    '</div></div>'; }
+
+  function measure(){ const card=track.querySelector('.lcard'); if(!card) return;
+    const cs=getComputedStyle(track); const gap=parseFloat(cs.columnGap||cs.gap)||18;
+    repW=(card.offsetWidth+gap)*CARDS.length;
+    if(offset<repW || offset>=2*repW) offset=repW;
+    track.style.transform='translateX('+(-offset)+'px)'; }
+
+  function build(){
+    let html=''; for(let r=0;r<REPS;r++) html+=CARDS.map(cardHTML).join('');
+    track.innerHTML=html;
+    if(hoverable) track.querySelectorAll('.lcard').forEach(c=>{
+      c.addEventListener('mouseenter',()=>c.classList.add('flip'));
+      c.addEventListener('mouseleave',()=>c.classList.remove('flip'));
+    });
+    requestAnimationFrame(measure);
+  }
+
+  if(hoverable){
+    lcar.addEventListener('mouseenter', ()=>{ paused=true; });
+    lcar.addEventListener('mouseleave', ()=>{ paused=false; });
+  }
+
+  let tLastX=0, tMoved=0, tCard=null;
+  lcar.addEventListener('touchstart', e=>{ tLastX=e.touches[0].clientX; tMoved=0; tCard=e.target.closest('.lcard'); }, {passive:true});
+  lcar.addEventListener('touchmove', e=>{ const x=e.touches[0].clientX; const dx=x-tLastX; tLastX=x; tMoved+=Math.abs(dx); offset-=dx; }, {passive:true});
+  lcar.addEventListener('touchend', ()=>{ if(tCard && tMoved<=8) tCard.classList.toggle('flip'); tCard=null; }, {passive:true});
+
+  // drift only while the carousel is on screen — saves battery
+  let visible=false;
+  new IntersectionObserver(es=>es.forEach(e=>{ visible=e.isIntersecting; }),{threshold:.05}).observe(lcar);
+
+  function frame(){
+    if(!paused && visible && !reduced) offset+=DRIFT;
+    if(repW>0){ if(offset>=2*repW) offset-=repW; if(offset<repW) offset+=repW; }
+    track.style.transform='translateX('+(-offset)+'px)';
+    requestAnimationFrame(frame);
+  }
+
+  document.querySelectorAll('#langpick .lp').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('#langpick .lp').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on'); lang=btn.getAttribute('data-lang'); build();
+  }));
+  window.addEventListener('resize', measure);
+
+  build(); requestAnimationFrame(frame);
+})();
+
+// ——— checkout links (Polar)
+(function(){
+  const POLAR_MONTHLY_URL = 'https://buy.polar.sh/polar_cl_YFzisyctIXO4OOpOGohrEXatdd7IkMTaGoYxV4LVLat';
+  const POLAR_ANNUAL_URL  = 'https://buy.polar.sh/polar_cl_h0ng8vruSd40zV2x6t0mMe7phxbmaI7bsK80p3dWfTO';
+  const a = document.getElementById('buyAnnual'), m = document.getElementById('buyMonthly');
+  if(a && POLAR_ANNUAL_URL)  a.href = POLAR_ANNUAL_URL;
+  if(m && POLAR_MONTHLY_URL) m.href = POLAR_MONTHLY_URL;
+})();
+</script>
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "how-cutout": {
+    "word": "una flor",
+    "meaning": "a flower",
+    "example": "La flor es blanca con un centro amarillo."
+  },
+  "g1": {
+    "word": "un amuleto",
+    "meaning": "a charm",
+    "example": "Llevo un amuleto para tener buena suerte."
+  },
+  "g2": {
+    "word": "una planta",
+    "meaning": "a plant",
+    "example": "La planta está en un macetero blanco."
+  },
+  "g3": {
+    "word": "el sushi",
+    "meaning": "sushi",
+    "example": "Me gusta comer sushi en el restaurante japonés."
+  },
+  "g4": {
+    "word": "la botella",
+    "meaning": "the bottle",
+    "example": "La botella está sobre la mesa."
+  },
+  "g5": {
+    "word": "un mango",
+    "meaning": "a mango",
+    "example": "El mango es una fruta tropical muy dulce."
+  },
+  "g6": {
+    "word": "la tetera eléctrica",
+    "meaning": "the electric kettle",
+    "example": "La tetera eléctrica está encima de la mesa."
+  },
+  "g7": {
+    "word": "una naranja",
+    "meaning": "an orange",
+    "example": "Me gusta comer una naranja en el desayuno."
+  }
+}

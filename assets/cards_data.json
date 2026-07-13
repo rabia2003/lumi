@@ -1,0 +1,137 @@
+{
+  "translations": [
+    {
+      "en": "amulet",
+      "es": {
+        "word": "un amuleto",
+        "example": "Lleva un amuleto para la buena suerte."
+      },
+      "zh": {
+        "word": "护身符",
+        "example": "他戴着护身符保平安。"
+      },
+      "ru": {
+        "word": "амулет",
+        "example": "Он носит амулет для удачи."
+      },
+      "kk": {
+        "word": "амулет",
+        "example": "Ол құрметті амулет қолдаған."
+      }
+    },
+    {
+      "en": "plant",
+      "es": {
+        "word": "una planta",
+        "example": "La planta necesita mucha luz."
+      },
+      "zh": {
+        "word": "植物",
+        "example": "这株植物需要阳光。"
+      },
+      "ru": {
+        "word": "растение",
+        "example": "Растение нужно поливать каждый день."
+      },
+      "kk": {
+        "word": "өсімдік",
+        "example": "Өсімдік күннің қызығын қажет етеді."
+      }
+    },
+    {
+      "en": "sushi",
+      "es": {
+        "word": "un sushi",
+        "example": "Comí un sushi de atún."
+      },
+      "zh": {
+        "word": "寿司",
+        "example": "我吃了寿司。"
+      },
+      "ru": {
+        "word": "суши",
+        "example": "Я съел суши с лососем."
+      },
+      "kk": {
+        "word": "суши",
+        "example": "Мен лосось суши жедім."
+      }
+    },
+    {
+      "en": "bottle",
+      "es": {
+        "word": "una botella",
+        "example": "Guarda el vino en una botella."
+      },
+      "zh": {
+        "word": "瓶子",
+        "example": "把酒装在瓶子里。"
+      },
+      "ru": {
+        "word": "бутылка",
+        "example": "Вино хранится в бутылке."
+      },
+      "kk": {
+        "word": "бөтелка",
+        "example": "Сусын бөтелкада сақтау керек."
+      }
+    },
+    {
+      "en": "mango",
+      "es": {
+        "word": "un mango",
+        "example": "Comí un mango maduro."
+      },
+      "zh": {
+        "word": "芒果",
+        "example": "我吃了芒果。"
+      },
+      "ru": {
+        "word": "манго",
+        "example": "Я съел спелое манго."
+      },
+      "kk": {
+        "word": "манго",
+        "example": "Мен қызыл манго жедім."
+      }
+    },
+    {
+      "en": "electric kettle",
+      "es": {
+        "word": "un hervidor eléctrico",
+        "example": "El hervidor eléctrico hiere el agua rápido."
+      },
+      "zh": {
+        "word": "电水壶",
+        "example": "电水壶很快烧开水。"
+      },
+      "ru": {
+        "word": "электрический чайник",
+        "example": "Электрический чайник быстро кипятит воду."
+      },
+      "kk": {
+        "word": "электр қайнатқыш",
+        "example": "Электр қайнатқыш суы жылдам қайнатады."
+      }
+    },
+    {
+      "en": "orange",
+      "es": {
+        "word": "una naranja",
+        "example": "Comí una naranja por la mañana."
+      },
+      "zh": {
+        "word": "橙子",
+        "example": "我早上吃了橙子。"
+      },
+      "ru": {
+        "word": "апельсин",
+        "example": "Я съел апельсин утром."
+      },
+      "kk": {
+        "word": "апельсин",
+        "example": "Мен сағат 8-де апельсин жедім."
+      }
+    }
+  ]
+}
