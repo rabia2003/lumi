@@ -145,7 +145,8 @@ const DB_NAME = 'lumi', DB_STORE = 'kv', JOURNALS_KEY = 'journals';
 // ---- Free tier / Lumi Pro ------------------------------------------------
 const CAPTURE_KEY = 'lumi.captures';   // lifetime count of saved words (the free-tier meter)
 const PREMIUM_KEY = 'lumi.premium';    // '1' once this person is on Lumi Pro
-const FREE_LIMIT  = 5;                 // words you can collect free before Pro is needed
+const FREE_LIMIT  = 5;                 // words a signed-in free user can collect before Pro is needed
+const ANON_LIMIT  = 1;                 // free captures allowed with NO account before sign-up is required
 // Polar hosted-checkout links (PRODUCTION). The in-app buttons append the signed-in
 // user's id + email so the webhook can unlock the right account after payment.
 const POLAR_MONTHLY_URL = 'https://buy.polar.sh/polar_cl_YFzisyctIXO4OOpOGohrEXatdd7IkMTaGoYxV4LVLat';
@@ -200,8 +201,15 @@ async function saveStore(){
 function loadCaptureCount(){ const v = localStorage.getItem(CAPTURE_KEY); return v == null ? null : (parseInt(v, 10) || 0); }
 function saveCaptureCount(){ try { localStorage.setItem(CAPTURE_KEY, String(state.captureCount || 0)); } catch(e){} }
 function isPremium(){ return !!state.premium; }
-function freeLeft(){ return Math.max(0, FREE_LIMIT - (state.captureCount || 0)); }
+// Words left before the NEXT gate: for a logged-out visitor that's the 1-image sign-up
+// gate; for a signed-in free user it's the FREE_LIMIT Pro gate.
+function effLimit(){ return state.user ? FREE_LIMIT : ANON_LIMIT; }
+function freeLeft(){ return Math.max(0, effLimit() - (state.captureCount || 0)); }
 function atFreeLimit(){ return !isPremium() && (state.captureCount || 0) >= FREE_LIMIT; }
+// Logged-out and already used the free image → must create an account to keep going.
+function atAnonLimit(){ return !state.user && (state.captureCount || 0) >= ANON_LIMIT; }
+// Route a gated logged-out visitor to sign-up (their 1 free word is kept + migrated on signup).
+function requireSignup(){ state.authMode = 'signup'; state.authError = ''; state.authNotice = t('auth.continueNotice'); go('auth'); }
 // Opens the Polar checkout for a plan (or explains it's coming if no link is set yet).
 function openCheckout(url){
   if(!url){ showToast('Payments are being set up — coming very soon!', true); return; }
@@ -399,6 +407,7 @@ const I18N = {
   'auth.signup': { en: 'Sign up', es: 'Regístrate', zh: '注册', ru: 'Зарегистрироваться', kk: 'Тіркелу' },
   'auth.checkEmail': { en: 'Check your email for a sign-in link.', es: 'Revisa tu correo para el enlace de acceso.', zh: '请查收邮箱中的登录链接。', ru: 'Проверьте почту — там ссылка для входа.', kk: 'Кіру сілтемесі үшін email-іңізді тексеріңіз.' },
   'auth.saveNotice': { en: "Create an account to save the words you've collected — and keep them on every device.", es: 'Crea una cuenta para guardar las palabras que has recogido — y tenerlas en todos tus dispositivos.', zh: '创建账户以保存你收集的单词 —— 并在所有设备上同步。', ru: 'Создайте аккаунт, чтобы сохранить собранные слова — и открывать их на всех устройствах.', kk: 'Жинаған сөздеріңізді сақтау үшін аккаунт жасаңыз — олар барлық құрылғыда болады.' },
+  'auth.continueNotice': { en: "Create a free account to keep collecting — your first word is saved to it.", es: 'Crea una cuenta gratis para seguir coleccionando — tu primera palabra queda guardada en ella.', zh: '创建免费账户以继续收集 —— 你的第一个单词已保存在其中。', ru: 'Создайте бесплатный аккаунт, чтобы продолжить — ваше первое слово сохранится в нём.', kk: 'Жинауды жалғастыру үшін тегін аккаунт жасаңыз — алғашқы сөзіңіз сонда сақталады.' },
   'auth.enterEmailFirst': { en: 'Enter your email first, then tap the link option.', es: 'Introduce primero tu correo y luego toca la opción del enlace.', zh: '请先输入邮箱，再点击链接选项。', ru: 'Сначала введите email, затем нажмите вариант со ссылкой.', kk: 'Алдымен email-іңізді енгізіп, содан кейін сілтеме опциясын басыңыз.' },
   'auth.networkError': { en: 'Network error — please try again.', es: 'Error de red: inténtalo de nuevo.', zh: '网络错误 — 请重试。', ru: 'Ошибка сети — попробуйте ещё раз.', kk: 'Желі қатесі — қайталап көріңіз.' },
   'auth.somethingWrong': { en: 'Something went wrong.', es: 'Algo salió mal.', zh: '出了点问题。', ru: 'Что-то пошло не так.', kk: 'Бірдеңе дұрыс болмады.' },
@@ -417,6 +426,7 @@ const I18N = {
   'home.reviewTitle': { en: "Today's review", es: 'Repaso de hoy', zh: '今日复习', ru: 'Повторение на сегодня', kk: 'Бүгінгі қайталау' },
   'home.reviewReady': { en: 'ready when you are', es: 'listo cuando quieras', zh: '随时可以开始', ru: 'готово, когда вы будете', kk: 'дайын болғанда бастаңыз' },
   'home.unlockPro': { en: 'Unlock Lumi Pro', es: 'Desbloquea Lumi Pro', zh: '解锁 Lumi Pro', ru: 'Открыть Lumi Pro', kk: 'Lumi Pro-ны ашу' },
+  'home.signupFree': { en: 'Sign up free to keep going', es: 'Regístrate gratis para continuar', zh: '免费注册以继续', ru: 'Зарегистрируйтесь, чтобы продолжить', kk: 'Жалғастыру үшін тегін тіркеліңіз' },
   'result.newWord': { en: 'A new word', es: 'Una nueva palabra', zh: '一个新词', ru: 'Новое слово', kk: 'Жаңа сөз' },
   'result.save': { en: 'Save to collection', es: 'Guardar en la colección', zh: '保存到收藏', ru: 'Сохранить в коллекцию', kk: 'Жинаққа сақтау' },
   'result.saved': { en: 'Saved ✓', es: 'Guardado ✓', zh: '已保存 ✓', ru: 'Сохранено ✓', kk: 'Сақталды ✓' },
@@ -1199,9 +1209,9 @@ function markUserOnboarded(){
   } catch(e){}
 }
 // Decide which screen to show based on whether someone is signed in.
-// NO LOGIN WALL: visitors can use the app first (up to FREE_LIMIT captures) and are
-// only asked to sign in later — to SAVE their words and unlock Pro. So a logged-out
-// person lands on onboarding/home, never a forced auth screen.
+// NO LOGIN WALL AT THE DOOR: visitors capture their first word (ANON_LIMIT) with no
+// account, THEN sign-up is required to keep going (the capture action routes to auth).
+// So a logged-out person still lands on onboarding/home, never a forced auth screen up front.
 function applyAuthScreen(){
   if(state.recovery){ state.screen = 'auth'; return; }   // stay on the set-new-password screen
   if(state.screen === 'auth' || state.screen === 'loading'){
@@ -1622,9 +1632,9 @@ function homeView(){
         </div>
       </button>
       <button data-action="upload" style="margin-top:24px;font-size:13px;color:var(--ink-soft);font-weight:600;border-bottom:1px solid var(--glass-brd);padding-bottom:2px">${esc(t('home.upload'))}</button>
-      ${!isPremium() ? `<button data-action="goUpgrade" style="margin-top:22px;display:inline-flex;align-items:center;gap:7px;padding:7px 15px;border-radius:22px;background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--glass-brd);font-size:12px;font-weight:600;color:var(--ink-soft)">
+      ${!isPremium() ? `<button data-action="${freeLeft() > 0 || state.user ? 'goUpgrade' : 'goAuthContinue'}" style="margin-top:22px;display:inline-flex;align-items:center;gap:7px;padding:7px 15px;border-radius:22px;background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--glass-brd);font-size:12px;font-weight:600;color:var(--ink-soft)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.1 5.4 5.9.3-4.6 3.7 1.6 5.7L12 14.9 6.9 17.6l1.6-5.7L3.9 8.2l5.9-.3z"/></svg>
-        ${freeLeft() > 0 ? esc(tFreeLeft(freeLeft())) : esc(t('home.unlockPro'))}
+        ${freeLeft() > 0 ? esc(tFreeLeft(freeLeft())) : esc(state.user ? t('home.unlockPro') : t('home.signupFree'))}
       </button>` : ''}
     </div>
     <div style="position:relative;padding:0 30px 38px;text-align:center;font-size:11.5px;color:var(--ink-soft);line-height:1.5">${esc(t('home.privacy'))}</div>
@@ -2360,13 +2370,14 @@ const ACTIONS = {
   settings:          () => openSheet('settings'),
   journal:           () => { state.journalMode = 'cards'; state.review = null; go('journal'); },
   openSwitchLearning:() => openSheet('switch','learning'),
-  capture:           () => { if(atFreeLimit()){ go('upgrade'); return; } openCamera(); },
-  upload:            () => { if(atFreeLimit()){ go('upgrade'); return; } openFilePicker(); },
+  capture:           () => { if(atAnonLimit()){ requireSignup(); return; } if(atFreeLimit()){ go('upgrade'); return; } openCamera(); },
+  upload:            () => { if(atAnonLimit()){ requireSignup(); return; } if(atFreeLimit()){ go('upgrade'); return; } openFilePicker(); },
   goUpgrade:         () => go('upgrade'),
   upgradeClose:      () => go('home'),
   buyAnnual:         () => startCheckout('annual', POLAR_ANNUAL_URL),
   buyMonthly:        () => startCheckout('monthly', POLAR_MONTHLY_URL),
   goAuthSave:        () => { state.authMode = 'signup'; state.authError = ''; state.authNotice = t('auth.saveNotice'); go('auth'); },
+  goAuthContinue:    () => requireSignup(),
   authSkip:          () => { state.authNotice = ''; state.authError = ''; go(state.onboarded ? 'home' : 'onboarding'); },
   manageSub:         () => { if(POLAR_PORTAL_URL){ window.open(POLAR_PORTAL_URL, '_blank'); } else { showToast(t('toast.subManage'), false); } },
   close:             () => go('home'),
