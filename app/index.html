@@ -404,6 +404,7 @@ const I18N = {
   'auth.forgot': { en: 'Forgot password?', es: '¿Olvidaste tu contraseña?', zh: '忘记密码？', ru: 'Забыли пароль?', kk: 'Құпия сөзді ұмыттыңыз ба?' },
   'auth.or': { en: 'or', es: 'o', zh: '或', ru: 'или', kk: 'немесе' },
   'auth.google': { en: 'Continue with Google', es: 'Continuar con Google', zh: '使用 Google 继续', ru: 'Продолжить с Google', kk: 'Google арқылы жалғастыру' },
+  'auth.apple': { en: 'Continue with Apple', es: 'Continuar con Apple', zh: '使用 Apple 继续', ru: 'Продолжить с Apple', kk: 'Apple арқылы жалғастыру' },
   'auth.backToSignin': { en: 'Back to sign in', es: 'Volver a iniciar sesión', zh: '返回登录', ru: 'Назад ко входу', kk: 'Кіруге оралу' },
   'auth.haveAccount': { en: 'Already have an account?', es: '¿Ya tienes una cuenta?', zh: '已经有账户了？', ru: 'Уже есть аккаунт?', kk: 'Аккаунтыңыз бар ма?' },
   'auth.noAccount': { en: "Don't have an account?", es: '¿No tienes una cuenta?', zh: '还没有账户？', ru: 'Нет аккаунта?', kk: 'Аккаунтыңыз жоқ па?' },
@@ -415,6 +416,7 @@ const I18N = {
   'auth.networkError': { en: 'Network error — please try again.', es: 'Error de red: inténtalo de nuevo.', zh: '网络错误 — 请重试。', ru: 'Ошибка сети — попробуйте ещё раз.', kk: 'Желі қатесі — қайталап көріңіз.' },
   'auth.somethingWrong': { en: 'Something went wrong.', es: 'Algo salió mal.', zh: '出了点问题。', ru: 'Что-то пошло не так.', kk: 'Бірдеңе дұрыс болмады.' },
   'auth.googleFail': { en: 'Could not start Google sign-in.', es: 'No se pudo iniciar sesión con Google.', zh: '无法开始 Google 登录。', ru: 'Не удалось начать вход через Google.', kk: 'Google арқылы кіру басталмады.' },
+  'auth.appleFail': { en: 'Could not start Apple sign-in.', es: 'No se pudo iniciar sesión con Apple.', zh: '无法开始 Apple 登录。', ru: 'Не удалось начать вход через Apple.', kk: 'Apple арқылы кіру басталмады.' },
   'auth.verifySent': { en: 'We sent a verification link to {email}. Open it to finish signing up, then come back and sign in.', es: 'Enviamos un enlace de verificación a {email}. Ábrelo para terminar el registro y luego vuelve e inicia sesión.', zh: '我们已向 {email} 发送验证链接。打开链接完成注册，然后返回登录。', ru: 'Мы отправили ссылку для подтверждения на {email}. Откройте её, чтобы завершить регистрацию, затем вернитесь и войдите.', kk: '{email} мекенжайына растау сілтемесін жібердік. Тіркелуді аяқтау үшін оны ашыңыз, содан кейін оралып кіріңіз.' },
   'ob.speak': { en: 'I speak', es: 'Hablo', zh: '我讲', ru: 'Я говорю на', kk: 'Мен сөйлеймін' },
   'ob.learning': { en: "I'm learning", es: 'Estoy aprendiendo', zh: '我在学', ru: 'Я учу', kk: 'Мен үйреніп жүрмін' },
@@ -1308,6 +1310,37 @@ async function googleSignIn(){
     if(error) throw error;
   } catch(e){ state.authError = (e && e.message) || t('auth.googleFail'); render(); }
 }
+function isNative(){ return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+async function sha256Hex(s){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+// Sign in with Apple. On iOS (native shell) we use the native Apple sheet and hand the
+// identity token to Supabase; on the web we use Supabase's redirect flow. Apple + Supabase
+// use a nonce: Apple gets the SHA-256 hash, Supabase gets the raw value.
+async function appleSignIn(){
+  state.authError = ''; state.authNotice = ''; render();
+  try {
+    const supa = await window.lumiSupaReady;
+    const SIWA = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SignInWithApple;
+    if(isNative() && SIWA){
+      const rawNonce = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
+      const hashedNonce = await sha256Hex(rawNonce);
+      const res = await SIWA.authorize({ clientId: 'com.lumiwords.app', redirectURI: 'https://lumiwords.com/app', scopes: 'email name', nonce: hashedNonce });
+      const idToken = res && res.response && res.response.identityToken;
+      if(!idToken) throw new Error('No Apple identity token');
+      const { error } = await supa.auth.signInWithIdToken({ provider: 'apple', token: idToken, nonce: rawNonce });
+      if(error) throw error;   // onAuthStateChange SIGNED_IN takes it from here
+    } else {
+      const { error } = await supa.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: location.origin + location.pathname } });
+      if(error) throw error;
+    }
+  } catch(e){
+    const msg = (e && (e.message || e.error)) || '';
+    if(/cancel|1001|popup|closed/i.test(msg)){ render(); return; }   // user dismissed the Apple sheet — not an error
+    state.authError = msg || t('auth.appleFail'); render();
+  }
+}
 // Passwordless: email the person a one-time sign-in link.
 async function magicLink(){
   const emailEl = document.getElementById('authEmail');
@@ -1494,8 +1527,10 @@ function authView(){
   const emailField = !newpass ? `<input id="authEmail" type="email" inputmode="email" autocomplete="email" placeholder="${esc(t('auth.email'))}" value="${esc(state.authEmail)}" style="${inputCss};margin-bottom:${reset?'14px':'10px'}">` : '';
   const passField = !reset ? `<input id="authPass" type="password" autocomplete="${signup||newpass ? 'new-password' : 'current-password'}" placeholder="${newpass ? esc(t('auth.newPassword')) : esc(t('auth.password'))}" value="${esc(state.authPass)}" style="${inputCss};margin-bottom:${mode==='signin'?'8px':'14px'}">` : '';
   const forgot = mode === 'signin' ? `<div style="text-align:right;margin:0 2px 12px"><button data-action="authReset" style="font-size:13px;color:var(--ink-soft);font-weight:600">${esc(t('auth.forgot'))}</button></div>` : '';
+  const appleG = `<svg width="16" height="18" viewBox="0 0 16 18" fill="#fff" style="flex-shrink:0"><path d="M13.29 9.57c-.02-2.02 1.65-2.99 1.72-3.04-.94-1.37-2.4-1.56-2.92-1.58-1.24-.13-2.43.73-3.06.73-.63 0-1.6-.71-2.64-.69-1.36.02-2.61.79-3.31 2.01-1.41 2.45-.36 6.08 1.01 8.07.67.97 1.47 2.06 2.51 2.02 1.01-.04 1.39-.65 2.61-.65 1.22 0 1.56.65 2.63.63 1.09-.02 1.78-.99 2.44-1.96.77-1.12 1.09-2.21 1.11-2.27-.02-.01-2.13-.82-2.15-3.25zM11.28 3.66c.56-.68.94-1.62.83-2.56-.81.03-1.79.54-2.36 1.21-.51.6-.96 1.56-.84 2.48.9.07 1.82-.46 2.37-1.13z"/></svg>`;
+  const appleBtn = isNative() ? `<button data-action="appleSignIn" style="width:100%;height:50px;display:flex;align-items:center;justify-content:center;gap:9px;border-radius:16px;background:#000;border:1px solid #000;color:#fff;font-size:15px;font-weight:600;margin-bottom:10px">${appleG} ${esc(t('auth.apple'))}</button>` : '';
   const social = (!reset && !newpass) ? `<div style="display:flex;align-items:center;gap:10px;margin:16px 0 14px;color:var(--ink-soft);font-size:12px"><div style="flex:1;height:1px;background:var(--glass-brd)"></div>${esc(t('auth.or'))}<div style="flex:1;height:1px;background:var(--glass-brd)"></div></div>
-        <button data-action="googleSignIn" style="width:100%;height:50px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:16px;background:#fff;border:1px solid var(--glass-brd);color:#3c4043;font-size:15px;font-weight:600">${googleG} ${esc(t('auth.google'))}</button>` : '';
+        ${appleBtn}<button data-action="googleSignIn" style="width:100%;height:50px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:16px;background:#fff;border:1px solid var(--glass-brd);color:#3c4043;font-size:15px;font-weight:600">${googleG} ${esc(t('auth.google'))}</button>` : '';
   const bottom = newpass ? ''
     : reset ? `<div style="text-align:center;margin-top:18px;font-size:14px"><button data-action="authSignin" style="color:var(--ink);font-weight:600">← ${esc(t('auth.backToSignin'))}</button></div>`
     : `<div style="text-align:center;margin-top:18px;font-size:14px;color:var(--ink-soft)">${signup?esc(t('auth.haveAccount')):esc(t('auth.noAccount'))} <button data-action="toggleAuthMode" style="color:var(--ink);font-weight:600;border-bottom:1px solid var(--glass-brd);padding-bottom:1px">${signup?esc(t('auth.signin')):esc(t('auth.signup'))}</button></div>`;
@@ -2410,6 +2445,7 @@ const ACTIONS = {
   reviewAgain:       () => { startReviewSession(state.journals[state.learning]||[]); render(); },
   submitAuth:        () => submitAuth(),
   googleSignIn:      () => googleSignIn(),
+  appleSignIn:       () => appleSignIn(),
   magicLink:         () => magicLink(),
   toggleAuthMode:    () => setAuthMode(state.authMode === 'signup' ? 'signin' : 'signup'),
   authReset:         () => setAuthMode('reset'),
