@@ -494,6 +494,8 @@ const I18N = {
   'sheet.imLearning': { en: "I'm learning", es: 'Estoy aprendiendo', zh: '我在学', ru: 'Я учу', kk: 'Мен үйреніп жүрмін' },
   'sheet.syncNote': { en: 'Your collection is saved to your account and synced across your devices.', es: 'Tu colección se guarda en tu cuenta y se sincroniza entre tus dispositivos.', zh: '你的收藏保存在账户中，并在各设备间同步。', ru: 'Ваша коллекция сохраняется в аккаунте и синхронизируется между устройствами.', kk: 'Жинағыңыз аккаунтыңызда сақталып, құрылғылар арасында синхрондалады.' },
   'sheet.proActive': { en: 'Active — thank you 💛', es: 'Activo — gracias 💛', zh: '已激活 — 谢谢你 💛', ru: 'Активно — спасибо 💛', kk: 'Белсенді — рахмет 💛' },
+  'sheet.goPro': { en: 'Go Pro', es: 'Hazte Pro', zh: '升级 Pro', ru: 'Перейти на Pro', kk: 'Pro-ға өту' },
+  'sheet.goProSub': { en: 'Unlimited words in every language', es: 'Palabras ilimitadas en todos los idiomas', zh: '所有语言的无限单词', ru: 'Безлимит слов на всех языках', kk: 'Барлық тілде шексіз сөз' },
   'sheet.manage': { en: 'Manage', es: 'Gestionar', zh: '管理', ru: 'Управление', kk: 'Басқару' },
   'sheet.signedIn': { en: 'Signed in', es: 'Sesión iniciada', zh: '已登录', ru: 'Вы вошли', kk: 'Кіргенсіз' },
   'sheet.signOut': { en: 'Sign out', es: 'Cerrar sesión', zh: '退出登录', ru: 'Выйти', kk: 'Шығу' },
@@ -1374,9 +1376,15 @@ async function insertLocalCards(supa, cards, META){
   if(error){ console.warn('merge insert failed:', error.message || error); return []; }
   return data || [];
 }
+let _syncing = false, _syncAgain = false;
 async function syncOnAuth(){
   if(!state.user) return;
-  let supa; try { supa = await window.lumiSupaReady; } catch(e){ return; }
+  // A sign-in can fire syncOnAuth twice (returning-session check + SIGNED_IN event). Without
+  // this guard both run at once, both see the cloud empty + the same local card, and both
+  // push it → the first captured word shows up TWICE. Coalesce concurrent calls into one.
+  if(_syncing){ _syncAgain = true; return; }
+  _syncing = true;
+  let supa; try { supa = await window.lumiSupaReady; } catch(e){ _syncing = false; return; }
   try {
     const { data: prof } = await supa.from('profiles').select('spoken,learning,theme').eq('id', state.user.id).maybeSingle();
     if(prof){
@@ -1448,6 +1456,10 @@ async function syncOnAuth(){
     resolveCardImages();                                  // sign private-path images so they display
     setTimeout(() => migrateImagesToStorage(), 4000);     // one-time: move old base64/public images into the private bucket
   } catch(e){ console.warn('Sync failed (using local copy):', e); }
+  finally {
+    _syncing = false;
+    if(_syncAgain){ _syncAgain = false; syncOnAuth(); }   // run once more (sequentially) for any call that arrived mid-sync
+  }
 }
 // One-time migration: for each card that still holds its image LOCALLY as base64 (the
 // device that created it always does), upload that base64 into the private bucket and
@@ -2336,7 +2348,14 @@ function sheetView(){
           <div style="font-size:14px;color:var(--ink)">${esc(t('sheet.proActive'))}</div>
         </div>
         <button data-action="manageSub" style="flex-shrink:0;height:42px;padding:0 16px;border-radius:21px;background:var(--glass);border:1px solid var(--glass-brd);color:var(--ink);font-size:14px;font-weight:600">${esc(t('sheet.manage'))}</button>
-      </div>` : ''}
+      </div>` : `<div style="height:1px;background:var(--glass-brd);margin:18px 0"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="min-width:0">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-soft)">Lumi Pro</div>
+          <div style="font-size:13.5px;color:var(--ink-soft);line-height:1.35">${esc(t('sheet.goProSub'))}</div>
+        </div>
+        <button data-action="goUpgrade" style="flex-shrink:0;height:42px;padding:0 18px;border-radius:21px;background:var(--cta);color:var(--cta-ink);font-size:14px;font-weight:700">${esc(t('sheet.goPro'))} ✳</button>
+      </div>`}
       ${state.user ? `<div style="height:1px;background:var(--glass-brd);margin:18px 0"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
         <div style="min-width:0">
@@ -2410,7 +2429,7 @@ const ACTIONS = {
   openSwitchLearning:() => openSheet('switch','learning'),
   capture:           () => { if(atAnonLimit()){ requireSignup(); return; } if(atFreeLimit()){ go('upgrade'); return; } openCamera(); },
   upload:            () => { if(atAnonLimit()){ requireSignup(); return; } if(atFreeLimit()){ go('upgrade'); return; } openFilePicker(); },
-  goUpgrade:         () => go('upgrade'),
+  goUpgrade:         () => { state.sheet = null; go('upgrade'); },   // clear any open sheet (e.g. Settings) first
   upgradeClose:      () => go('home'),
   buyAnnual:         () => startCheckout('annual', POLAR_ANNUAL_URL),
   buyMonthly:        () => startCheckout('monthly', POLAR_MONTHLY_URL),
