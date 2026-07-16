@@ -756,7 +756,7 @@ async function removeBg(dataUrl){
 }
 function timeoutReject(ms){ return new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)); }
 // Render a transparent cut-out as a floating "sticker" with a white edge + soft shadow.
-function cutoutImg(src, maxW, maxH, edge){
+function cutoutImg(src, maxW, maxH, edge, extra){
   const e = edge || 2, d = (e*0.72).toFixed(1);
   const filter = [
     `drop-shadow(${e}px 0 0 #fff)`, `drop-shadow(-${e}px 0 0 #fff)`,
@@ -765,7 +765,7 @@ function cutoutImg(src, maxW, maxH, edge){
     `drop-shadow(${d}px -${d}px 0 #fff)`, `drop-shadow(-${d}px -${d}px 0 #fff)`,
     `drop-shadow(0 16px 22px rgba(35,45,40,.5))`
   ].join(' ');
-  return `<img src="${src}" alt="" style="display:block;max-width:${maxW}px;max-height:${maxH}px;width:auto;height:auto;object-fit:contain;filter:${filter}">`;
+  return `<img src="${src}" alt="" style="display:block;max-width:${maxW}px;max-height:${maxH}px;width:auto;height:auto;object-fit:contain;filter:${filter}${extra ? ';'+extra : ''}">`;
 }
 
 /* ---- 7. Actions (things that change the state, then re-draw) ----------- */
@@ -1730,13 +1730,11 @@ function resultView(){
   const bg = cur.photo ? `url('${cur.photo}') center/cover` : '#c9ccc6';
   let floatEl;
   if(cur.cutout){
-    const obj = cutoutImg(cur.cutout, 210, 250, 2.5);
-    // The reveal wrapper must FILL the image area (width/height:100% + flex-center), otherwise
-    // the image's "max-height:100%" has no definite parent height to resolve against and renders
-    // at full size — which is why the cut-out only fit correctly after a save re-render.
-    floatEl = state.reveal
-      ? `<div style="animation:lumiReveal .5s cubic-bezier(.2,.9,.3,1) both, lumiGlow .9s ease-out .05s 1;width:100%;height:100%;display:flex;align-items:center;justify-content:center">${obj}</div>`
-      : obj;
+    // Put the reveal animation directly ON the image (transform is visual-only, doesn't affect
+    // layout size) instead of wrapping it. A wrapper broke the image's "max-height:100%" sizing
+    // (its parent had no definite height), so the cut-out only fit AFTER a save re-render removed
+    // the wrapper. No wrapper = the reveal render is identical to the working post-save render.
+    floatEl = cutoutImg(cur.cutout, 210, 250, 2.5, state.reveal ? 'animation:lumiReveal .5s cubic-bezier(.2,.9,.3,1) both' : '');
   } else {
     floatEl = cur.photo ? `<div style="${photoFrame(cur.photo, 200, 234)}"></div>` : '';
   }
