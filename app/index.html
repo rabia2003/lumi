@@ -1730,11 +1730,11 @@ function resultView(){
   const bg = cur.photo ? `url('${cur.photo}') center/cover` : '#c9ccc6';
   let floatEl;
   if(cur.cutout){
-    // Put the reveal animation directly ON the image (transform is visual-only, doesn't affect
-    // layout size) instead of wrapping it. A wrapper broke the image's "max-height:100%" sizing
-    // (its parent had no definite height), so the cut-out only fit AFTER a save re-render removed
-    // the wrapper. No wrapper = the reveal render is identical to the working post-save render.
-    floatEl = cutoutImg(cur.cutout, 210, 250, 2.5, state.reveal ? 'animation:lumiReveal .5s cubic-bezier(.2,.9,.3,1) both' : '');
+    // No reveal animation on the cut-out: animating a transform on this heavy 9-drop-shadow
+    // filter forces the filter to re-rasterize every frame (it also floats via lumiBob) — that
+    // made the result screen very slow on mobile. Plain <img>, direct child of .resFloat, so it
+    // sizes correctly (matches the post-save render) and the filter rasterizes only once.
+    floatEl = cutoutImg(cur.cutout, 210, 250, 2.5);
   } else {
     floatEl = cur.photo ? `<div style="${photoFrame(cur.photo, 200, 234)}"></div>` : '';
   }
