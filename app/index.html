@@ -312,6 +312,17 @@ LANGS.forEach(l => { if(!state.journals[l.code]) state.journals[l.code] = []; })
     }
   } catch(e){}
 })();
+// The landing page's "Go Pro" sends people here as /app?go=monthly|annual instead of
+// straight to Polar. We handle it AFTER auth resolves (see initAuth) so the checkout always
+// carries the signed-in user's id — a checkout without it can't be matched to an account by
+// the webhook, and the customer would pay and never receive Pro.
+let _goPlan = null;
+(function(){
+  try {
+    const g = new URLSearchParams(location.search).get('go');
+    if(g === 'monthly' || g === 'annual'){ _goPlan = g; history.replaceState(null, '', location.pathname); }
+  } catch(e){}
+})();
 // Live A/B test for object naming (temporary). ?ai=gemini or ?ai=qwen picks the vision
 // model; ?direct=1 uses that model's OWN Kazakh/target words (skips Google Translate).
 // The choice sticks so you can shoot several photos to compare. ?ai=off (and ?direct=off)
@@ -1176,6 +1187,12 @@ async function initAuth(){
   applyAuthScreen();
   render();
   if(state.user){ syncOnAuth(); refreshPremium(); pollPremiumAfterCheckout(); resumePendingPlan(); }   // returning session → pull cloud data + Pro status (+ catch a just-completed upgrade)
+  // Came from the landing's "Go Pro" (/app?go=…). Now that auth is resolved, start checkout:
+  // signed in → straight to Polar WITH their user id; logged out → sign-up first, then resume.
+  if(_goPlan && !isPremium()){
+    const p = _goPlan; _goPlan = null;
+    startCheckout(p, p === 'annual' ? POLAR_ANNUAL_URL : POLAR_MONTHLY_URL);
+  }
   supa.auth.onAuthStateChange((event, session) => {
     state.user = session ? session.user : null;
     if(event === 'PASSWORD_RECOVERY'){ state.recovery = true; state.authMode = 'newpassword'; state.authError = ''; state.authNotice = ''; }
@@ -1221,15 +1238,18 @@ function markUserOnboarded(){
 // So a logged-out person still lands on onboarding/home, never a forced auth screen up front.
 function applyAuthScreen(){
   if(state.recovery){ state.screen = 'auth'; return; }   // stay on the set-new-password screen
-  if(state.screen === 'auth' || state.screen === 'loading'){
-    let done;
-    if(state.user){
-      done = userOnboarded() || state.onboarded;                    // account-level, or already picked languages locally
+  if(state.user){
+    // Signed in (fresh sign-in or returning) → move off the auth/loading screen into the app.
+    if(state.screen === 'auth' || state.screen === 'loading'){
+      const done = userOnboarded() || state.onboarded;              // account-level, or already picked languages locally
       if(done && !userOnboarded()) markUserOnboarded();             // a just-signed-up visitor keeps their setup — no repeat onboarding
-    } else {
-      done = state.onboarded;
+      state.screen = done ? 'home' : 'onboarding';
     }
-    state.screen = done ? 'home' : 'onboarding';   // pick languages first, then capture
+  } else {
+    // Logged out: only leave the initial LOADING screen. Never bounce someone off an auth
+    // screen they opened on purpose (sign-up gate, "Go Pro" from the landing) — an auth
+    // event firing on load used to kick them straight back to home mid-signup.
+    if(state.screen === 'loading'){ state.screen = state.onboarded ? 'home' : 'onboarding'; }
   }
 }
 function setAuthMode(mode){ state.authMode = mode; state.authError = ''; state.authNotice = ''; render(); }

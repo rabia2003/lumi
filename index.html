@@ -677,13 +677,15 @@ document.querySelectorAll('.rv').forEach(el => io.observe(el));
   build(); requestAnimationFrame(frame);
 })();
 
-// ——— checkout links (Polar)
+// ——— checkout: NEVER link straight to Polar from here.
+// A checkout started on the landing page carries no account identity, so the webhook has
+// no idea which Lumi account to upgrade — the customer pays and never gets Pro (this
+// actually happened). Send people into the app instead: it signs them in first, then opens
+// the same checkout WITH their user id attached, so the webhook can always match them.
 (function(){
-  const POLAR_MONTHLY_URL = 'https://buy.polar.sh/polar_cl_YFzisyctIXO4OOpOGohrEXatdd7IkMTaGoYxV4LVLat';
-  const POLAR_ANNUAL_URL  = 'https://buy.polar.sh/polar_cl_h0ng8vruSd40zV2x6t0mMe7phxbmaI7bsK80p3dWfTO';
   const a = document.getElementById('buyAnnual'), m = document.getElementById('buyMonthly');
-  if(a && POLAR_ANNUAL_URL)  a.href = POLAR_ANNUAL_URL;
-  if(m && POLAR_MONTHLY_URL) m.href = POLAR_MONTHLY_URL;
+  if(a) a.href = '/app?go=annual';
+  if(m) m.href = '/app?go=monthly';
 })();
 </script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};</script>

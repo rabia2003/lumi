@@ -93,8 +93,12 @@ async function setPremium({ externalId, email }, value){
   };
   let matched = 0;
   if(externalId) matched = await tryPatch('id=eq.' + encodeURIComponent(externalId));
-  if(!matched && email) matched = await tryPatch('email=eq.' + encodeURIComponent(email));
-  console.log('polar-webhook: set is_premium=' + value + ' matched ' + matched + ' row(s)', { externalId, email });
+  // Fallback by email is CASE-INSENSITIVE: Polar may return a different case than the one
+  // stored on the profile, and an exact match would silently upgrade nobody.
+  if(!matched && email) matched = await tryPatch('email=ilike.' + encodeURIComponent(email));
+  // Loud on failure: this means somebody PAID and did NOT get Pro — needs manual reconciliation.
+  if(!matched) console.error('polar-webhook: PAID BUT NO ACCOUNT MATCHED — grant manually', { externalId, email, value });
+  else console.log('polar-webhook: set is_premium=' + value + ' matched ' + matched + ' row(s)', { externalId, email });
   return matched;
 }
 
