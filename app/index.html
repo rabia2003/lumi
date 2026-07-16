@@ -1731,8 +1731,11 @@ function resultView(){
   let floatEl;
   if(cur.cutout){
     const obj = cutoutImg(cur.cutout, 210, 250, 2.5);
+    // The reveal wrapper must FILL the image area (width/height:100% + flex-center), otherwise
+    // the image's "max-height:100%" has no definite parent height to resolve against and renders
+    // at full size — which is why the cut-out only fit correctly after a save re-render.
     floatEl = state.reveal
-      ? `<div style="animation:lumiReveal .5s cubic-bezier(.2,.9,.3,1) both, lumiGlow .9s ease-out .05s 1">${obj}</div>`
+      ? `<div style="animation:lumiReveal .5s cubic-bezier(.2,.9,.3,1) both, lumiGlow .9s ease-out .05s 1;width:100%;height:100%;display:flex;align-items:center;justify-content:center">${obj}</div>`
       : obj;
   } else {
     floatEl = cur.photo ? `<div style="${photoFrame(cur.photo, 200, 234)}"></div>` : '';
